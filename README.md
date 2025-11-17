@@ -11,4 +11,9 @@ To-Do List:
 
 Notes:  
 1: Cluster physically reorders data in secondary storage to be physically closer based on index. https://www.postgresql.org/docs/current/sql-cluster.html  
-2: We can assume that the input data will fit in main memory  
+2: We can assume that the input data will fit in main memory 
+3: Maybe use
+Matrix multiplication is generally vectors
+Give an Hybrid and mixed data representation with vectors
+Maybe sparse RNN in noSQL or any other format
+We want to store tensor computations themselves in noSQL or any other format(perhaps JSON or better)
