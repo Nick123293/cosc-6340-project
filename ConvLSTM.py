@@ -15,6 +15,10 @@ class ConvLSTM3DCell(nn.Module):
     super().__init__()
     self.input_dim = input_dim
     self.hidden_dim = hidden_dim
+    if isinstance(kernel_size, int):
+      kernel_size = (kernel_size, kernel_size, kernel_size)
+    if isinstance(padding, int):
+      padding = (padding, padding, padding)
 
     self.conv = nn.Conv3d(
       in_channels=input_dim + hidden_dim,
