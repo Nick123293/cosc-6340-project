@@ -7,6 +7,8 @@ To-Do List:
 5: Show ACID properties using postgres as a log mechanism.  
 6: Analyze parallelization, time complexity, create report.  
 
+Test Dataset:  
+https://huggingface.co/datasets/BUPT-PRIS-727/Weather2K  
 
 
 Notes:  
