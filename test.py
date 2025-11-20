@@ -1,6 +1,7 @@
 import tensorFormatTransformation as tFT
 from ConvLSTM import ConvLSTM3D
 import torch
+import os
 def predict_next_on_csv_3d(
   csv_path,
   convlstm,
@@ -69,14 +70,28 @@ def build_model_from_checkpoint(checkpoint_path, device="cpu"):
 
 
 if __name__ == "__main__":
-  csv_path = "../data/weather_sparse_coo_100x100x100_t10.csv"
-  checkpoint_path = "../data/weather_convlstm3d_checkpoint.pth"
+  script_dir = os.path.dirname(os.path.abspath(__file__))
+  
+  csv_path = os.path.join(script_dir, "data", "weather_sparse_coo_100x100x100_t10.csv")
+  checkpoint_path = os.path.join(script_dir, "data", "weather_convlstm3d_checkpoint.pth")
 
+  print(f"Loading data from: {csv_path}")
+  print(f"Loading model from: {checkpoint_path}")
+
+  # --- STEP 2: SETUP DEVICE ---
   device = "cuda" if torch.cuda.is_available() else "cpu"
+  print(f"Using device: {device}")
 
+  # --- STEP 3: CHECK IF TRAINED MODEL EXISTS ---
+  if not os.path.exists(checkpoint_path):
+      print("\n ERROR: Checkpoint file not found!")
+      print("You must run 'train.py' successfully before running 'test.py'.")
+      exit()
+
+  # --- STEP 4: BUILD AND LOAD MODEL ---
   convlstm, decoder = build_model_from_checkpoint(checkpoint_path, device=device)
 
-  # Use the *trained* model for prediction only
+  # --- STEP 5: RUN PREDICTION ---
   y_pred, y_target = predict_next_on_csv_3d(
     csv_path,
     convlstm,
