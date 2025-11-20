@@ -1,6 +1,6 @@
 # cosc-6340-project
 To-Do List:  
-1: Create an RNN, implement into SQL  
+~~1: Create an RNN, implement into SQL~~  
 2: Put input data into SQL  
 3: Create a python script, that uses pyTorch and postgreSQL. Pytorch for computation, postgreSQL for data management in secondary storage. We want to have to query postgres for data as few times as possible, these are analagous to our I/O operations.  
 4: Show that we can query certain parts of the database at a certain time.  
