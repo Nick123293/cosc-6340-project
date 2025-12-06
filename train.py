@@ -12,6 +12,8 @@ from psycopg2.extras import execute_values
 from ConvLSTM import ConvLSTM2D
 
 
+SEQ_LEN_IN=9
+
 # ---------------------------------------------------------
 # 0. CSV → Dense 2D Tensor
 # ---------------------------------------------------------
@@ -250,7 +252,7 @@ def train_single_csv(
     # dense: (B, T_total, C, H, W)
     B, T_total, C, H, W = dense.shape
 
-    seq_len_in = 9
+    seq_len_in = SEQ_LEN_IN
     if T_total < seq_len_in + future_steps:
         print(f"[WARN] File {csv_path} skipped (not enough time steps).")
         return None
@@ -311,7 +313,7 @@ def validate_single_csv(
     dense, _, _, _, _ = load_sparse_csv_to_dense_2d(csv_path, T, X, Y, Z, device=device)
     B, T_total, C, H, W = dense.shape
 
-    seq_len_in = 9
+    seq_len_in = SEQ_LEN_IN
     if T_total < seq_len_in + future_steps:
         return None
 
