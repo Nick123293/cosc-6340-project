@@ -13,224 +13,153 @@ from ConvLSTM import ConvLSTM2D
 
 
 # =========================================================
-# GLOBAL "RAM LIMIT" SIMULATION PARAMETERS
+# GLOBAL "MEMORY LIMIT" SIMULATION PARAMETERS
 # =========================================================
 
-# Cap for how much CSV data we read into RAM at once
-CSV_MAX_BYTES_PER_CHUNK = 3 * 1024 * 1024  # ~3MB
+# We now assume:
+#   - CPU RAM is "large enough" to hold the full dense tensor.
+#   - GPU memory is limited to ~3 MB worth of (B,T,C,H,W) at a time.
+GPU_MAX_BYTES = 3 * 1024 * 1024  # ~3MB on GPU per window
 
-# Cap for how large the *dense* tensor can be (in bytes).
-# This directly limits how many time steps we materialize.
-DENSE_MAX_BYTES = 3 * 1024 * 1024  # ~3MB
-
-SEQ_LEN_IN = 9  # input sequence length
+SEQ_LEN_IN = 9  # input sequence length (same as full memory version)
 
 
 # ---------------------------------------------------------
-# 0. Utilities for chunked CSV + RAM-based row estimation
+# 0. CSV → Dense 2D Tensor ON CPU (load once per file)
 # ---------------------------------------------------------
 
-def estimate_rows_per_chunk(csv_path, max_bytes=CSV_MAX_BYTES_PER_CHUNK, sample_rows=1000):
-    """
-    Estimate how many rows we can read per chunk so that the in-memory
-    DataFrame is ~max_bytes in size.
-
-    This is a heuristic to simulate a RAM cap on CSV loading.
-    """
-    sample = pd.read_csv(csv_path, nrows=sample_rows)
-    if len(sample) == 0:
-        return 1
-
-    bytes_total = sample.memory_usage(deep=True).sum()
-    bytes_per_row = bytes_total / len(sample)
-    if bytes_per_row <= 0:
-        return 1
-
-    rows_per_chunk = int(max_bytes // bytes_per_row)
-    return max(rows_per_chunk, 1)
-
-
-# ---------------------------------------------------------
-# 1. STREAM CSV AS DENSE 2D WINDOWS (RAM-LIMITED)
-# ---------------------------------------------------------
-
-def stream_dense_windows_from_csv(
+def load_sparse_csv_to_dense_2d(
     csv_path,
-    seq_len_in,
-    future_steps,
-    T=None, X=None, Y=None, Z=None,   # Z ignored; kept for API compatibility
+    T=None, X=None, Y=None, Z=None,   # Z kept for API compatibility, ignored
     device="cpu",
-    dense_max_bytes=DENSE_MAX_BYTES,
-    window_stride=None,
 ):
     """
-    Iterate over the *entire* time span of the CSV, but in RAM-limited windows.
+    Load a sparse CSV (time, x, y, 4 channels) and produce a dense tensor:
 
-    For each window, yield:
-        dense:            (1, T_win, 4, H, W)
-        t_window:         DatetimeIndex of length T_win
-        x_unique:         sorted unique x
-        y_unique:         sorted unique y
-        z_unique:         dummy np.array([0])
-        seq_len_eff:      effective input length (<= seq_len_in)
-        future_steps_eff: effective pred horizon (<= future_steps)
+        dense: (B=1, T_dim, C=4, H=Y_dim, W=X_dim)
 
-    - Each window is small enough that dense tensor memory <= dense_max_bytes.
-    - Windows are non-overlapping by default (stride = T_window).
+    - Time axis:
+        * Build full hourly timeline from min(t_raw) to max(t_raw).
+        * Any missing hours are included and stay all-zero in the tensor.
+    - Spatial axes:
+        * Build full set of unique x and unique y from the file.
+        * Any missing (t, x, y) combination stays all-zero in the tensor.
+
+    NOTE: This function always builds the tensor on CPU; GPU windowing happens later.
     """
 
-    # ---- 0. Determine CSV rows per chunk ----
-    rows_per_chunk = estimate_rows_per_chunk(csv_path, max_bytes=CSV_MAX_BYTES_PER_CHUNK)
+    # Force CPU here; we only want this dense tensor in host RAM.
+    device = torch.device("cpu")
 
-    # ---- 1. First pass: discover t_min, t_max, x_unique, y_unique ----
-    t_min = None
-    t_max = None
-    x_vals = set()
-    y_vals = set()
+    df = pd.read_csv(csv_path)
 
-    for chunk in pd.read_csv(csv_path, usecols=[0, 1, 2], chunksize=rows_per_chunk):
-        # chunk columns: [time, x, y]
-        t_chunk = pd.to_datetime(chunk.iloc[:, 0])
-        x_chunk = chunk.iloc[:, 1].astype(float)
-        y_chunk = chunk.iloc[:, 2].astype(float)
+    # ---- 0. Basic sanity check ----
+    if df.shape[1] < 5:
+        raise ValueError(
+            "CSV must have at least 5 columns: time, x, y, and feature columns."
+        )
 
-        c_min = t_chunk.min()
-        c_max = t_chunk.max()
-        if t_min is None or c_min < t_min:
-            t_min = c_min
-        if t_max is None or c_max > t_max:
-            t_max = c_max
+    # ---- 1. Parse columns ----
+    t_raw = pd.to_datetime(df.iloc[:, 0])          # timestamps
+    x_raw = df.iloc[:, 1].astype(float)
+    y_raw = df.iloc[:, 2].astype(float)
 
-        x_vals.update(x_chunk.unique().tolist())
-        y_vals.update(y_chunk.unique().tolist())
+    # Take the last 4 columns as the 4 channels
+    feats = df.iloc[:, -4:].astype(float).fillna(0.0)
+    C = feats.shape[1]  # should be 4, but we infer it
 
-    if t_min is None or t_max is None:
-        # Empty or invalid CSV
-        return
+    # ---- 2. Build full hourly timeline (fills missing timesteps) ----
+    t_min, t_max = t_raw.min(), t_raw.max()
+    t_full = pd.date_range(start=t_min, end=t_max, freq="h")
+    t_full_values = t_full.values
+    nT_full = len(t_full_values)
 
-    # Sort spatial coords for stable index mapping
-    x_unique = np.array(sorted(x_vals), dtype=float)
-    y_unique = np.array(sorted(y_vals), dtype=float)
+    # If T is provided and larger than nT_full, pad with extra time steps at the end
+    T_dim = T if (T is not None and T >= nT_full) else nT_full
 
-    nX = len(x_unique)
-    nY = len(y_unique)
+    # Map each timestamp in the CSV to an index in [0, nT_full)
+    time_to_index = {ts: i for i, ts in enumerate(t_full_values)}
+    t_idx_np = np.fromiter(
+        (time_to_index[ts] for ts in t_raw.values),
+        dtype=np.int64,
+        count=len(t_raw),
+    )
 
-    # Optional overrides for X_dim, Y_dim (not really needed unless you upsample)
+    # ---- 3. Spatial indices (fills missing x,y grid positions) ----
+    x_unique, x_inv = np.unique(x_raw.values, return_inverse=True)
+    y_unique, y_inv = np.unique(y_raw.values, return_inverse=True)
+
+    nX, nY = len(x_unique), len(y_unique)
+
     X_dim = X if (X is not None and X >= nX) else nX
     Y_dim = Y if (Y is not None and Y >= nY) else nY
 
-    # For now we assume you always have 4 feature channels
-    B = 1
-    C = 4
-    bytes_per_element = 4  # float32
+    B = 1  # batch size
 
-    # ---- 2. Full hourly timeline over the whole file ----
-    t_full = pd.date_range(start=t_min, end=t_max, freq="h")
-    nT_full = len(t_full)
+    # ---- 4. Allocate dense tensor on CPU ----
+    dense = torch.zeros(
+        (B, T_dim, C, Y_dim, X_dim),
+        device=device,
+        dtype=torch.float32,
+    )
 
-    # ---- 3. Enforce dense RAM limit to compute max timesteps per window ----
-    bytes_per_timestep = B * C * Y_dim * X_dim * bytes_per_element
+    # ---- 5. Scatter observed values into dense grid ----
+    t_idx = torch.tensor(t_idx_np, dtype=torch.long, device=device)
+    x_idx = torch.tensor(x_inv, dtype=torch.long, device=device)
+    y_idx = torch.tensor(y_inv, dtype=torch.long, device=device)
+    feats_t = torch.tensor(feats.values, dtype=torch.float32, device=device)
+
+    dense[0, t_idx, :, y_idx, x_idx] = feats_t
+
+    z_unique = np.array([0], dtype=int)
+    return dense, t_full, x_unique, y_unique, z_unique
+
+
+# ---------------------------------------------------------
+# 1. GPU WINDOW SIZE (simulate GPU memory limit)
+# ---------------------------------------------------------
+
+def compute_T_window(
+    dense_cpu,
+    gpu_max_bytes=GPU_MAX_BYTES,
+    seq_len_in=SEQ_LEN_IN,
+    future_steps=3,
+):
+    """
+    Given a dense CPU tensor (B, T_total, C, H, W), compute:
+      - T_window: number of timesteps we can fit on GPU at once, under gpu_max_bytes
+      - window_stride: stride for non-overlapping windows (we use T_window here)
+
+    This version tries to use as *much* of the GPU memory budget as possible,
+    not just the minimal seq_len_in + future_steps.
+    """
+    B, T_total, C, H, W = dense_cpu.shape
+
+    bytes_per_element = dense_cpu.element_size()  # 4 for float32
+    bytes_per_timestep = B * C * H * W * bytes_per_element
+
     if bytes_per_timestep <= 0:
         raise ValueError("Computed zero-sized spatial grid.")
 
-    max_T_fit = max(int(dense_max_bytes // bytes_per_timestep), 1)
-
-    # We would like to fit seq_len_in + future_steps if possible
+    max_T_fit = max(int(gpu_max_bytes // bytes_per_timestep), 1)
     base_T_needed = seq_len_in + future_steps
-    T_window = min(max_T_fit, base_T_needed)
-    if T_window < 2:
+
+    # We want to use as many timesteps as we can *while staying under the VRAM cap*.
+    # - At minimum we need base_T_needed to have a full (seq_len_in, future_steps) pair.
+    # - If the cap doesn't allow that, we fall back to the old behavior.
+    if max_T_fit < base_T_needed:
+        # Very tight GPU limit, fall back to the smaller window (but still >= 2)
+        T_window = max(max_T_fit, 2)
         print(
-            f"[WARN] Very tight RAM limit for {csv_path}, "
-            f"bytes_per_timestep={bytes_per_timestep}, max_T_fit={max_T_fit}"
+            f"[WARN] Very tight GPU limit: bytes_per_timestep={bytes_per_timestep}, "
+            f"max_T_fit={max_T_fit}, base_T_needed={base_T_needed}, using T_window={T_window}"
         )
-        T_window = 2
+    else:
+        # Use as much as the cap will allow (but not more than the sequence length).
+        T_window = min(max_T_fit, T_total)
 
-    # Non-overlapping windows by default (each timestep seen once)
-    if window_stride is None:
-        window_stride = T_window
-
-    # Pre-build maps for x and y (global over file)
-    x_to_index = {val: i for i, val in enumerate(x_unique)}
-    y_to_index = {val: i for i, val in enumerate(y_unique)}
-
-    device = torch.device(device)
-
-    # ---- 4. Iterate over time windows across the full dataset ----
-    for start_idx in range(0, nT_full, window_stride):
-        end_idx = min(start_idx + T_window, nT_full)
-        t_window = t_full[start_idx:end_idx]
-        T_win = len(t_window)
-        if T_win < 2:
-            continue
-
-        # Effective seq_len and future_steps within this window,
-        # possibly smaller than requested due to small T_win.
-        seq_len_eff = min(SEQ_LEN_IN, T_win - 1)
-        future_steps_eff = min(future_steps, T_win - seq_len_eff)
-        if future_steps_eff <= 0:
-            continue
-
-        t_window_values = t_window.values
-        time_to_index = {ts: i for i, ts in enumerate(t_window_values)}
-
-        # Allocate dense tensor for this window
-        dense = torch.zeros(
-            (B, T_win, C, Y_dim, X_dim),
-            device=device,
-            dtype=torch.float32
-        )
-
-        # ---- 5. Second pass: fill this window from CSV row chunks ----
-        for chunk in pd.read_csv(csv_path, chunksize=rows_per_chunk):
-            # Expected layout: [time, x, y, ..., last 4 columns = channels]
-            if chunk.shape[1] < 5:
-                raise ValueError(
-                    "CSV must have at least 5 columns: time, x, y, and 4 feature columns."
-                )
-
-            t_raw = pd.to_datetime(chunk.iloc[:, 0])
-            x_raw = chunk.iloc[:, 1].astype(float)
-            y_raw = chunk.iloc[:, 2].astype(float)
-            feats = chunk.iloc[:, -4:].astype(float).fillna(0.0)  # (N_chunk, 4)
-
-            # Keep only rows whose time is within this window
-            valid_mask = t_raw.isin(t_window)
-            if not valid_mask.any():
-                continue
-
-            t_raw = t_raw[valid_mask]
-            x_raw = x_raw[valid_mask]
-            y_raw = y_raw[valid_mask]
-            feats = feats[valid_mask]
-
-            # Map to integer indices
-            t_idx_np = np.fromiter(
-                (time_to_index[ts] for ts in t_raw.values),
-                dtype=np.int64,
-                count=len(t_raw),
-            )
-            x_idx_np = np.fromiter(
-                (x_to_index[val] for val in x_raw.values),
-                dtype=np.int64,
-                count=len(x_raw),
-            )
-            y_idx_np = np.fromiter(
-                (y_to_index[val] for val in y_raw.values),
-                dtype=np.int64,
-                count=len(y_raw),
-            )
-
-            t_idx = torch.tensor(t_idx_np, device=device, dtype=torch.long)
-            x_idx = torch.tensor(x_idx_np, device=device, dtype=torch.long)
-            y_idx = torch.tensor(y_idx_np, device=device, dtype=torch.long)
-            feats_t = torch.tensor(feats.values, device=device, dtype=torch.float32)
-
-            dense[0, t_idx, :, y_idx, x_idx] = feats_t
-
-        # Dummy z_unique to keep similar signature if needed
-        z_unique = np.array([0], dtype=int)
-
-        yield dense, t_window, x_unique, y_unique, z_unique, seq_len_eff, future_steps_eff
+    window_stride = T_window
+    return T_window, window_stride
 
 
 # ---------------------------------------------------------
@@ -340,6 +269,28 @@ def log_epoch_metrics(
     conn.commit()
 
 
+def flush_layer_computations(conn, cursor, layer_buffer):
+    """
+    Flush buffered rows into layer_computations in one batched INSERT.
+    layer_buffer is a list of tuples:
+        (run_id, epoch, sample_path, time_step, embedding, notation)
+    """
+    if not layer_buffer:
+        return
+
+    execute_values(
+        cursor,
+        """
+        INSERT INTO layer_computations
+            (run_id, epoch, sample_path, time_step, embedding, notation)
+        VALUES %s
+        """,
+        layer_buffer,
+    )
+    conn.commit()
+    layer_buffer.clear()
+
+
 # ---------------------------------------------------------
 # 3. COMPRESSION (2D → vector)
 # ---------------------------------------------------------
@@ -353,7 +304,7 @@ def compress_2d_to_vector(tensor_5d):
 
 
 # ---------------------------------------------------------
-# 4. TRAINING ON ONE CSV (ALL WINDOWS)
+# 4. TRAINING ON ONE CSV (GPU-WINDOWED, BUFFERED DB LOGGING)
 # ---------------------------------------------------------
 
 def train_single_csv(
@@ -368,37 +319,70 @@ def train_single_csv(
     cursor,
     future_steps=3,
     T=None, X=None, Y=None, Z=None,
+    layer_buffer=None,
 ):
+    """
+    Load full CSV into a dense CPU tensor once, then process it on the GPU
+    in time windows that respect a simulated GPU memory cap.
+
+    Instead of writing to the DBMS per window, we append rows to layer_buffer,
+    which is then flushed once per epoch in train().
+    """
     device = next(convlstm.parameters()).device
+
+    # 1) Load full dense tensor on CPU
+    dense_cpu, _, _, _, _ = load_sparse_csv_to_dense_2d(
+        csv_path, T, X, Y, Z, device="cpu"
+    )
+    B, T_total, C, H, W = dense_cpu.shape
+
+    if T_total < SEQ_LEN_IN + future_steps:
+        print(f"[WARN] File {csv_path} skipped (not enough time steps).")
+        return None
+
+    # 2) Compute GPU window size / stride
+    T_window, window_stride = compute_T_window(
+        dense_cpu,
+        gpu_max_bytes=GPU_MAX_BYTES,
+        seq_len_in=SEQ_LEN_IN,
+        future_steps=future_steps,
+    )
 
     total_loss = 0.0
     n_windows = 0
 
-    for (dense, t_window, x_unique, y_unique, z_unique,
-         seq_len_eff, future_steps_eff) in stream_dense_windows_from_csv(
-        csv_path,
-        seq_len_in=SEQ_LEN_IN,
-        future_steps=future_steps,
-        T=T, X=X, Y=Y, Z=Z,
-        device=device,
-        dense_max_bytes=DENSE_MAX_BYTES,
-    ):
-        B, T_total, C, H, W = dense.shape
-
-        if T_total < seq_len_eff + future_steps_eff:
+    # 3) Slide over full time axis in non-overlapping windows
+    for start_t in range(0, T_total, window_stride):
+        end_t = min(start_t + T_window, T_total)
+        T_win = end_t - start_t
+        if T_win < 2:
             continue
 
-        x_in = dense[:, :seq_len_eff]   # (B, seq_len_eff, C, H, W)
-        y_true = dense[:, seq_len_eff:seq_len_eff + future_steps_eff]  # (B, future_steps_eff, C, H, W)
+        # Effective seq_len and future_steps within this window
+        seq_len_eff = min(SEQ_LEN_IN, T_win - 1)
+        future_steps_eff = min(future_steps, T_win - seq_len_eff)
+        if future_steps_eff <= 0:
+            continue
+
+        # CPU slices
+        x_cpu = dense_cpu[:, start_t : start_t + seq_len_eff]  # (B, seq_len_eff, C, H, W)
+        y_cpu = dense_cpu[:, start_t + seq_len_eff : start_t + seq_len_eff + future_steps_eff]
+
+        # Move to GPU
+        x_in = x_cpu.to(device, non_blocking=True)
+        y_true = y_cpu.to(device, non_blocking=True)
 
         optimizer.zero_grad()
         outputs, (h, c) = convlstm(x_in)  # (B, seq_len_eff, hidden_dim, H, W)
 
-        # --- Store embeddings for this window ---
-        if conn is not None and run_id is not None:
+        # --- Buffer embeddings for this window ---
+        if (
+            conn is not None
+            and run_id is not None
+            and layer_buffer is not None
+        ):
             compressed = compress_2d_to_vector(outputs).detach().cpu().numpy()
-
-            rows = []
+            # compressed: (B, T_out, hidden_dim) = (1, seq_len_eff, hidden_dim)
             for t in range(seq_len_eff):
                 notation_json = json.dumps({
                     "layer": "ConvLSTM2D",
@@ -408,17 +392,12 @@ def train_single_csv(
                     "input_shape": [int(H), int(W)],
                     "math": {"pool": "mean(h_t)", "conv": "matmul(im2col(...))"}
                 })
-                rows.append((run_id, epoch, csv_path, int(t), compressed[0, t].tolist(), notation_json))
-
-            execute_values(cursor,
-                """
-                INSERT INTO layer_computations
-                    (run_id, epoch, sample_path, time_step, embedding, notation)
-                VALUES %s
-                """,
-                rows
-            )
-            conn.commit()
+                # Note: time_step is relative to the *window* (0..seq_len_eff-1),
+                # same as your previous code. If you want global time index, you
+                # could use start_t + t instead.
+                layer_buffer.append(
+                    (run_id, epoch, csv_path, int(t), compressed[0, t].tolist(), notation_json)
+                )
 
         # --- Predict autoregressively for future_steps_eff ---
         preds = []
@@ -444,7 +423,7 @@ def train_single_csv(
 
 
 # ---------------------------------------------------------
-# 5. VALIDATION (ALL WINDOWS)
+# 5. VALIDATION (GPU-WINDOWED, NO DB LOGGING)
 # ---------------------------------------------------------
 
 def validate_single_csv(
@@ -457,26 +436,41 @@ def validate_single_csv(
 ):
     device = next(convlstm.parameters()).device
 
+    dense_cpu, _, _, _, _ = load_sparse_csv_to_dense_2d(
+        csv_path, T, X, Y, Z, device="cpu"
+    )
+    B, T_total, C, H, W = dense_cpu.shape
+
+    if T_total < SEQ_LEN_IN + future_steps:
+        return None
+
+    T_window, window_stride = compute_T_window(
+        dense_cpu,
+        gpu_max_bytes=GPU_MAX_BYTES,
+        seq_len_in=SEQ_LEN_IN,
+        future_steps=future_steps,
+    )
+
     total_loss = 0.0
     n_windows = 0
 
     with torch.no_grad():
-        for (dense, t_window, x_unique, y_unique, z_unique,
-             seq_len_eff, future_steps_eff) in stream_dense_windows_from_csv(
-            csv_path,
-            seq_len_in=SEQ_LEN_IN,
-            future_steps=future_steps,
-            T=T, X=X, Y=Y, Z=Z,
-            device=device,
-            dense_max_bytes=DENSE_MAX_BYTES,
-        ):
-            B, T_total, C, H, W = dense.shape
-
-            if T_total < seq_len_eff + future_steps_eff:
+        for start_t in range(0, T_total, window_stride):
+            end_t = min(start_t + T_window, T_total)
+            T_win = end_t - start_t
+            if T_win < 2:
                 continue
 
-            x_in = dense[:, :seq_len_eff]
-            y_true = dense[:, seq_len_eff:seq_len_eff + future_steps_eff]
+            seq_len_eff = min(SEQ_LEN_IN, T_win - 1)
+            future_steps_eff = min(future_steps, T_win - seq_len_eff)
+            if future_steps_eff <= 0:
+                continue
+
+            x_cpu = dense_cpu[:, start_t : start_t + seq_len_eff]
+            y_cpu = dense_cpu[:, start_t + seq_len_eff : start_t + seq_len_eff + future_steps_eff]
+
+            x_in = x_cpu.to(device, non_blocking=True)
+            y_true = y_cpu.to(device, non_blocking=True)
 
             outputs, (h, c) = convlstm(x_in)
 
@@ -590,16 +584,23 @@ def train(
         decoder.train()
         train_losses = []
 
+        # buffer for this epoch's layer_computations rows
+        layer_rows_buffer = []
+
         for csv in train_files:
             loss = train_single_csv(
                 csv, convlstm, decoder,
                 criterion, optimizer,
                 epoch, run_id,
                 conn, cursor,
-                future_steps=future_steps
+                future_steps=future_steps,
+                layer_buffer=layer_rows_buffer,
             )
             if loss is not None:
                 train_losses.append(loss)
+
+        # Flush all buffered layer computations for this epoch in one batch
+        flush_layer_computations(conn, cursor, layer_rows_buffer)
 
         train_loss = float(np.mean(train_losses)) if train_losses else float("nan")
 
@@ -615,6 +616,7 @@ def train(
 
         val_loss = float(np.mean(val_losses)) if val_losses else float("nan")
 
+        # NOTE: this format is what your bash parser expects
         print(f"[EPOCH {epoch+1}/{num_epochs}] train={train_loss:.6f}  val={val_loss:.6f}")
 
         # Save checkpoint
