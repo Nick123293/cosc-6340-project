@@ -1,16 +1,6 @@
-# cosc-6340-project
-To-Do List:  
-1) ~~Create an RNN, implement into SQL~~
-2) Find good input data, make it sparse and put into SQL
-3) Train NN on input data, getting data in chunks through SQL queries (as if the data cannot fit in main memory)
-4) Output computations to SQL database in chunks (to create checkpoints, mostly done??)
-5) Show how we can query SQL database to retreive checkpoints
-6) Compress NN using tensor decomposition??
-7) Turn Tensor products to matrix multiplication??
-8) Analyze parallelization, time complexity
-9) Create report
-
-
-Notes:  
-1) Cluster physically reorders data in secondary storage to be physically closer based on index. https://www.postgresql.org/docs/current/sql-cluster.html
-2) Maybe use Matrix multiplication is generally vectors Give an Hybrid and mixed data representation with vectorsMaybe sparse RNN in noSQL or any other formatWe want to store tensor computations themselves in noSQL or any other format(perhaps JSON or better)
+Instructions to use our code:  
+1) To do training, use train.py, train_memory_aware.py, train_memory_aware_gpu.py, or train_memory_aware_one_window.py (warning train_memory_aware.py will take very long to run) the only required command line argument --data, which you point to the directory of file you would like to train on
+2) Optional arguments are --epochs (defaults to 5), --future-steps (how many future steps we want to predict (defaults to 3), --checkpoint (where the checkpoints on saved on disk, defaults to checkpoint.pth), and --load-checkpoint (which will load a checkpoint if you would like to continue training, put path to checkpoint.pth)
+3) Arguments are same for all training algorithms, for the memory aware models you can change the RAM limits at the top of each file. You can also change the number of input timesteps into the ConvLSTM using SEQ_LEN_IN at the top of each relevant file
+4) To test, use test.py with the following arguments: --data path to the data, --checkpoint the model you want to test, --future-steps (same as training, defaults to 3), --seq-len (same as SEQ_LEN_IN from training, defaults to 9)
+5) The data is located in ~/project/data one directory is for training and the other is for testing
