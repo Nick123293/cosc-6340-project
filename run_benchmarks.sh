@@ -16,6 +16,7 @@ OUTFILE="benchmark_results.txt"
 
 CKPT_FULL="checkpoint_full.pth"
 CKPT_MEM="checkpoint_mem_aware.pth"
+CHPT_MEM_GPU="checkpoint_mem_aware_gpu.pth"
 
 ###############################################
 # Helper
@@ -98,7 +99,8 @@ if [[ -f "${OUTFILE}" ]]; then
     rm -f "${OUTFILE}"
 fi
 
-run_experiment "train.py" "full_memory" "${CKPT_FULL}"
-run_experiment "train_memory_aware_gpu.py" "memory_aware" "${CKPT_MEM}"
+# run_experiment "train.py" "full_memory" "${CKPT_FULL}"
+# run_experiment "train_memory_aware_one_window.py" "memory_aware" "${CKPT_MEM}"
+run_experiment "train_memory_aware_gpu.py" "memory_aware_gpu" "${CHPT_MEM_GPU}"
 
 echo "All runs complete. Summary written to ${OUTFILE}"
