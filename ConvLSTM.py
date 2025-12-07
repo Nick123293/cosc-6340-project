@@ -31,7 +31,7 @@ class ConvLSTM2DCell(nn.Module):
         self.padding = padding
 
         # Conv2d over concatenated [x_t, h_{t-1}] along channel dim
-        self.conv = Conv2dGEMM(
+        self.conv = nn.Conv2d(
             in_channels=input_dim + hidden_dim,
             out_channels=4 * hidden_dim,
             kernel_size=kernel_size,
