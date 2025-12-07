@@ -25,11 +25,6 @@ DENSE_MAX_BYTES = 3 * 1024 * 1024  # ~3MB
 
 SEQ_LEN_IN = 9  # input sequence length
 
-
-# ---------------------------------------------------------
-# 0. Utilities for chunked CSV + RAM-based row estimation
-# ---------------------------------------------------------
-
 def estimate_rows_per_chunk(csv_path, max_bytes=CSV_MAX_BYTES_PER_CHUNK, sample_rows=1000):
     """
     Estimate how many rows we can read per chunk so that the in-memory
@@ -49,188 +44,105 @@ def estimate_rows_per_chunk(csv_path, max_bytes=CSV_MAX_BYTES_PER_CHUNK, sample_
     rows_per_chunk = int(max_bytes // bytes_per_row)
     return max(rows_per_chunk, 1)
 
-
-# ---------------------------------------------------------
-# 1. STREAM CSV AS DENSE 2D WINDOWS (RAM-LIMITED)
-# ---------------------------------------------------------
-
 def stream_dense_windows_from_csv(
     csv_path,
     seq_len_in,
     future_steps,
-    T=None, X=None, Y=None, Z=None,   # Z ignored; kept for API compatibility
+    T=None, X=None, Y=None, Z=None,
     device="cpu",
     dense_max_bytes=DENSE_MAX_BYTES,
     window_stride=None,
 ):
-    """
-    Iterate over the *entire* time span of the CSV, but in RAM-limited windows.
+    rows_per_chunk = estimate_rows_per_chunk(csv_path)
 
-    For each window, yield:
-        dense:            (1, T_win, 4, H, W)
-        t_window:         DatetimeIndex of length T_win
-        x_unique:         sorted unique x
-        y_unique:         sorted unique y
-        z_unique:         dummy np.array([0])
-        seq_len_eff:      effective input length (<= seq_len_in)
-        future_steps_eff: effective pred horizon (<= future_steps)
-
-    - Each window is small enough that dense tensor memory <= dense_max_bytes.
-    - Windows are non-overlapping by default (stride = T_window).
-    """
-
-    # ---- 0. Determine CSV rows per chunk ----
-    rows_per_chunk = estimate_rows_per_chunk(csv_path, max_bytes=CSV_MAX_BYTES_PER_CHUNK)
-
-    # ---- 1. First pass: discover t_min, t_max, x_unique, y_unique ----
     t_min = None
     t_max = None
     x_vals = set()
     y_vals = set()
 
-    for chunk in pd.read_csv(csv_path, usecols=[0, 1, 2], chunksize=rows_per_chunk):
-        # chunk columns: [time, x, y]
-        t_chunk = pd.to_datetime(chunk.iloc[:, 0])
-        x_chunk = chunk.iloc[:, 1].astype(float)
-        y_chunk = chunk.iloc[:, 2].astype(float)
+    for chunk in pd.read_csv(csv_path, usecols=[0,1,2], chunksize=rows_per_chunk):
+        t_chunk = pd.to_datetime(chunk.iloc[:,0])
+        x_chunk = chunk.iloc[:,1].astype(float)
+        y_chunk = chunk.iloc[:,2].astype(float)
 
-        c_min = t_chunk.min()
-        c_max = t_chunk.max()
-        if t_min is None or c_min < t_min:
-            t_min = c_min
-        if t_max is None or c_max > t_max:
-            t_max = c_max
+        cmin = t_chunk.min()
+        cmax = t_chunk.max()
+        t_min = cmin if t_min is None else min(t_min, cmin)
+        t_max = cmax if t_max is None else max(t_max, cmax)
 
-        x_vals.update(x_chunk.unique().tolist())
-        y_vals.update(y_chunk.unique().tolist())
+        x_vals.update(x_chunk.unique())
+        y_vals.update(y_chunk.unique())
 
-    if t_min is None or t_max is None:
-        # Empty or invalid CSV
-        return
+    if t_min is None:
+        return  # no data
 
-    # Sort spatial coords for stable index mapping
     x_unique = np.array(sorted(x_vals), dtype=float)
     y_unique = np.array(sorted(y_vals), dtype=float)
 
-    nX = len(x_unique)
-    nY = len(y_unique)
+    X_dim = X if (X and X >= len(x_unique)) else len(x_unique)
+    Y_dim = Y if (Y and Y >= len(y_unique)) else len(y_unique)
 
-    # Optional overrides for X_dim, Y_dim (not really needed unless you upsample)
-    X_dim = X if (X is not None and X >= nX) else nX
-    Y_dim = Y if (Y is not None and Y >= nY) else nY
+    x_to_index = {v:i for i,v in enumerate(x_unique)}
+    y_to_index = {v:i for i,v in enumerate(y_unique)}
 
-    # For now we assume you always have 4 feature channels
-    B = 1
-    C = 4
-    bytes_per_element = 4  # float32
-
-    # ---- 2. Full hourly timeline over the whole file ----
     t_full = pd.date_range(start=t_min, end=t_max, freq="h")
     nT_full = len(t_full)
-
-    # ---- 3. Enforce dense RAM limit to compute max timesteps per window ----
+    time_to_idx = {ts:i for i,ts in enumerate(t_full)}
+    B = 1
+    C = 4
+    bytes_per_element = 4
     bytes_per_timestep = B * C * Y_dim * X_dim * bytes_per_element
-    if bytes_per_timestep <= 0:
-        raise ValueError("Computed zero-sized spatial grid.")
 
     max_T_fit = max(int(dense_max_bytes // bytes_per_timestep), 1)
+    T_window = max_T_fit
 
-    # We would like to fit seq_len_in + future_steps if possible
-    base_T_needed = seq_len_in + future_steps
-    T_window = min(max_T_fit, base_T_needed)
-    if T_window < 2:
-        print(
-            f"[WARN] Very tight RAM limit for {csv_path}, "
-            f"bytes_per_timestep={bytes_per_timestep}, max_T_fit={max_T_fit}"
-        )
-        T_window = 2
-
-    # Non-overlapping windows by default (each timestep seen once)
     if window_stride is None:
         window_stride = T_window
 
-    # Pre-build maps for x and y (global over file)
-    x_to_index = {val: i for i, val in enumerate(x_unique)}
-    y_to_index = {val: i for i, val in enumerate(y_unique)}
+    # n_windows = int(np.ceil(nT_full / window_stride)) FOR TESTING
+    # print(f"[INFO] nT_full={nT_full}, T_window={T_window}, total_windows={n_windows}")
 
+    buckets = [[] for _ in range(nT_full)]
+
+    for chunk in pd.read_csv(csv_path, chunksize=rows_per_chunk):
+        t_raw  = pd.to_datetime(chunk.iloc[:,0])
+        x_raw  = chunk.iloc[:,1].astype(float)
+        y_raw  = chunk.iloc[:,2].astype(float)
+        feats  = chunk.iloc[:,-4:].astype(float).fillna(0.0).values
+
+        for ts, x, y, f in zip(t_raw, x_raw, y_raw, feats):
+            idx = time_to_idx.get(ts)
+            if idx is None:
+                continue
+            buckets[idx].append((x_to_index[x], y_to_index[y], f))
+
+    # ---------------------------------------------------------
+    # PASS 3 — Yield dense windows populated from buckets
+    # ---------------------------------------------------------
     device = torch.device(device)
 
-    # ---- 4. Iterate over time windows across the full dataset ----
-    for start_idx in range(0, nT_full, window_stride):
-        end_idx = min(start_idx + T_window, nT_full)
-        t_window = t_full[start_idx:end_idx]
-        T_win = len(t_window)
-        if T_win < 2:
+    for start in range(0, nT_full, window_stride):
+        end = min(start + T_window, nT_full)
+        T_win = end - start
+
+        if T_win < seq_len_in + 1:
             continue
 
-        # Effective seq_len and future_steps within this window,
-        # possibly smaller than requested due to small T_win.
-        seq_len_eff = min(SEQ_LEN_IN, T_win - 1)
+        dense = torch.zeros((1, T_win, C, Y_dim, X_dim),
+                            device=device, dtype=torch.float32)
+
+        # populate
+        for t in range(T_win):
+            for (xi, yi, f) in buckets[start + t]:
+                dense[0, t, :, yi, xi] = torch.tensor(f, device=device)
+
+        seq_len_eff = seq_len_in
         future_steps_eff = min(future_steps, T_win - seq_len_eff)
         if future_steps_eff <= 0:
             continue
 
-        t_window_values = t_window.values
-        time_to_index = {ts: i for i, ts in enumerate(t_window_values)}
+        yield dense, t_full[start:end], x_unique, y_unique, np.array([0]), seq_len_eff, future_steps_eff
 
-        # Allocate dense tensor for this window
-        dense = torch.zeros(
-            (B, T_win, C, Y_dim, X_dim),
-            device=device,
-            dtype=torch.float32
-        )
-
-        # ---- 5. Second pass: fill this window from CSV row chunks ----
-        for chunk in pd.read_csv(csv_path, chunksize=rows_per_chunk):
-            # Expected layout: [time, x, y, ..., last 4 columns = channels]
-            if chunk.shape[1] < 5:
-                raise ValueError(
-                    "CSV must have at least 5 columns: time, x, y, and 4 feature columns."
-                )
-
-            t_raw = pd.to_datetime(chunk.iloc[:, 0])
-            x_raw = chunk.iloc[:, 1].astype(float)
-            y_raw = chunk.iloc[:, 2].astype(float)
-            feats = chunk.iloc[:, -4:].astype(float).fillna(0.0)  # (N_chunk, 4)
-
-            # Keep only rows whose time is within this window
-            valid_mask = t_raw.isin(t_window)
-            if not valid_mask.any():
-                continue
-
-            t_raw = t_raw[valid_mask]
-            x_raw = x_raw[valid_mask]
-            y_raw = y_raw[valid_mask]
-            feats = feats[valid_mask]
-
-            # Map to integer indices
-            t_idx_np = np.fromiter(
-                (time_to_index[ts] for ts in t_raw.values),
-                dtype=np.int64,
-                count=len(t_raw),
-            )
-            x_idx_np = np.fromiter(
-                (x_to_index[val] for val in x_raw.values),
-                dtype=np.int64,
-                count=len(x_raw),
-            )
-            y_idx_np = np.fromiter(
-                (y_to_index[val] for val in y_raw.values),
-                dtype=np.int64,
-                count=len(y_raw),
-            )
-
-            t_idx = torch.tensor(t_idx_np, device=device, dtype=torch.long)
-            x_idx = torch.tensor(x_idx_np, device=device, dtype=torch.long)
-            y_idx = torch.tensor(y_idx_np, device=device, dtype=torch.long)
-            feats_t = torch.tensor(feats.values, device=device, dtype=torch.float32)
-
-            dense[0, t_idx, :, y_idx, x_idx] = feats_t
-
-        # Dummy z_unique to keep similar signature if needed
-        z_unique = np.array([0], dtype=int)
-
-        yield dense, t_window, x_unique, y_unique, z_unique, seq_len_eff, future_steps_eff
 
 
 # ---------------------------------------------------------

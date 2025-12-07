@@ -5,89 +5,124 @@ set -euo pipefail
 # User-configurable section
 ###############################################
 
-DATA="data/chunks_sparse_csv"   # <-- change if needed
+DATA="data/small_chunks_sparse_csv"
 EPOCHS=5
 FUTURE_STEPS=3
 
-# Whether to pass --load-checkpoint to Python scripts
-LOAD_CHECKPOINT=false    # <-- set true if you want to resume
-
+LOAD_CHECKPOINT=false
 OUTFILE="benchmark_results.txt"
 
 CKPT_FULL="checkpoint_full.pth"
 CKPT_MEM="checkpoint_mem_aware.pth"
 CHPT_MEM_GPU="checkpoint_mem_aware_gpu.pth"
+CKPT_MEM_FULL_FILE="checkpoint_mem_aware_full_file.pth"
 
 ###############################################
-# Helper
+# Run experiment N times and compute averages
 ###############################################
 
-run_experiment() {
-    local script_name="$1"   # train.py or train_memory_aware.py
-    local label="$2"         # "full" or "memory_aware"
+run_experiment_3x() {
+    local script_name="$1"
+    local label="$2"
     local ckpt="$3"
 
     echo "========================================"
-    echo "Running ${label} (${script_name})..."
+    echo "Running ${label} (${script_name}) — 3 trials"
     echo "========================================"
 
-    local tmp_output="tmp_${label}_output.log"
+    local train_losses=()
+    local val_losses=()
+    local runtimes=()
 
-    local start end elapsed
-    start=$(date +%s)
+    # ------------------------------------------
+    # Perform 3 runs
+    # ------------------------------------------
+    for trial in 1 2 3; do
+        echo "--- ${label} Trial ${trial} ---"
 
-    # Build Python args
-    local args=(
-        "${script_name}"
-        --data "${DATA}"
-        --epochs "${EPOCHS}"
-        --future-steps "${FUTURE_STEPS}"
-        --checkpoint "${ckpt}"
-    )
-    if [[ "${LOAD_CHECKPOINT}" == "true" ]]; then
-        args+=(--load-checkpoint)
-    fi
+        local tmp_log="tmp_${label}_trial_${trial}.log"
 
-    # Capture stdout + stderr
-    python3 "${args[@]}" 2>&1 | tee "${tmp_output}"
+        local start end elapsed
+        start=$(date +%s.%N)   # high precision timestamp
 
-    end=$(date +%s)
-    elapsed=$((end - start))
+        local args=(
+            "${script_name}"
+            --data "${DATA}"
+            --epochs "${EPOCHS}"
+            --future-steps "${FUTURE_STEPS}"
+            --checkpoint "${ckpt}"
+        )
+        if [[ "${LOAD_CHECKPOINT}" == "true" ]]; then
+            args+=(--load-checkpoint)
+        fi
 
-    # Look for the last line that has train=
-    local last_line
-    last_line=$(grep "train=" "${tmp_output}" | tail -n 1 || true)
+        python3 "${args[@]}" 2>&1 | tee "${tmp_log}"
 
-    local train_loss="NA"
-    local val_loss="NA"
+        end=$(date +%s.%N)
+        
+        # Compute elapsed time with decimals
+        elapsed=$(echo "scale=4; ${end} - ${start}" | bc -l)
+        elapsed_fmt=$(printf "%.2f" "${elapsed}")
 
-    if [[ -z "${last_line}" ]]; then
-        echo "WARNING: No 'train=' lines found in ${label} run output."
-        echo "Check ${tmp_output} for errors or different log format."
-    else
-        # Grab the token after train= up to the next space
-        train_loss=$(echo "${last_line}" | sed -nE 's/.*train=([^ ]*).*/\1/p')
-        val_loss=$(echo "${last_line}"   | sed -nE 's/.*val=([^ ]*).*/\1/p')
+        # Extract final train/val losses
+        local last_line
+        last_line=$(grep "train=" "${tmp_log}" | tail -n 1 || true)
 
-        [[ -z "${train_loss}" ]] && train_loss="NA"
-        [[ -z "${val_loss}"  ]] && val_loss="NA"
-    fi
+        local train_loss="NA"
+        local val_loss="NA"
+
+        if [[ -n "${last_line}" ]]; then
+            train_loss=$(echo "${last_line}" | sed -nE 's/.*train=([^ ]*).*/\1/p')
+            val_loss=$(echo "${last_line}"   | sed -nE 's/.*val=([^ ]*).*/\1/p')
+        fi
+
+        train_losses+=("${train_loss}")
+        val_losses+=("${val_loss}")
+        runtimes+=("${elapsed}")
+
+        echo "Trial ${trial} result: time=${elapsed_fmt}s train=${train_loss} val=${val_loss}"
+        echo
+    done
+
+    ###############################################
+    # Compute averages
+    ###############################################
+
+    avg_float_list() {
+        local arr=("$@")
+        local sum=0
+        local count=0
+        for x in "${arr[@]}"; do
+            [[ "${x}" == "NA" ]] && continue
+            sum=$(echo "${sum} + ${x}" | bc -l)
+            count=$((count + 1))
+        done
+        if [[ $count -eq 0 ]]; then echo "NA"; return; fi
+        echo "scale=6; ${sum} / ${count}" | bc -l
+    }
+
+    avg_train=$(avg_float_list "${train_losses[@]}")
+    avg_val=$(avg_float_list "${val_losses[@]}")
+
+    # Runtime average (decimals ok)
+    avg_rt=$(avg_float_list "${runtimes[@]}")
+    avg_rt_fmt=$(printf "%.2f" "${avg_rt}")
 
     {
-        echo "Run: ${label}"
-        echo "  Script:      ${script_name}"
+        echo "========================================"
+        echo "Experiment: ${label} (${script_name}) — Averages over 3 runs"
+        echo "----------------------------------------"
         echo "  Data:        ${DATA}"
         echo "  Epochs:      ${EPOCHS}"
         echo "  FutureSteps: ${FUTURE_STEPS}"
-        echo "  LoadCkpt:    ${LOAD_CHECKPOINT}"
-        echo "  Time (s):    ${elapsed}"
-        echo "  Train loss:  ${train_loss}"
-        echo "  Val loss:    ${val_loss}"
+        echo "  Runtime avg: ${avg_rt_fmt} s"
+        echo "  Train avg:   ${avg_train}"
+        echo "  Val avg:     ${avg_val}"
         echo "----------------------------------------"
+        echo
     } >> "${OUTFILE}"
 
-    echo "Finished ${label}: time=${elapsed}s train=${train_loss} val=${val_loss}"
-    echo
+    echo "Finished ${label}: avg_time=${avg_rt_fmt}s avg_train=${avg_train} avg_val=${avg_val}"
 }
 
 ###############################################
@@ -99,8 +134,9 @@ if [[ -f "${OUTFILE}" ]]; then
     rm -f "${OUTFILE}"
 fi
 
-# run_experiment "train.py" "full_memory" "${CKPT_FULL}"
-# run_experiment "train_memory_aware_one_window.py" "memory_aware" "${CKPT_MEM}"
-run_experiment "train_memory_aware_gpu.py" "memory_aware_gpu" "${CHPT_MEM_GPU}"
+run_experiment_3x "train.py" "full_memory" "${CKPT_FULL}"
+run_experiment_3x "train_memory_aware_one_window.py" "memory_aware" "${CKPT_MEM}"
+run_experiment_3x "train_memory_aware_gpu.py" "memory_aware_gpu" "${CHPT_MEM_GPU}"
+run_experiment_3x "train_memory_aware.py" "memory_aware_full_file" "${CKPT_MEM_FULL_FILE}"
 
-echo "All runs complete. Summary written to ${OUTFILE}"
+echo "All experiments complete. Full summary in ${OUTFILE}"
