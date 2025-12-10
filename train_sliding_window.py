@@ -12,8 +12,6 @@ from psycopg2.extras import execute_values
 from ConvLSTM import ConvLSTM2D
 
 
-SEQ_LEN_IN = 9
-
 # ---------------------------------------------------------
 # 0. CSV → Dense 2D Tensor
 # ---------------------------------------------------------
@@ -239,6 +237,7 @@ def train_single_csv(
     epoch,
     run_id,
     layer_buffer,
+    seq_len_in=9,
     future_steps=3,
     T=None, X=None, Y=None, Z=None,
 ):
@@ -253,7 +252,6 @@ def train_single_csv(
     # dense: (B, T_total, C, H, W)
     B, T_total, C, H, W = dense.shape
 
-    seq_len_in = SEQ_LEN_IN
     min_required = seq_len_in + future_steps
     if T_total < min_required:
         print(f"[WARN] File {csv_path} skipped (not enough time steps: T={T_total}, need ≥ {min_required}).")
@@ -329,6 +327,7 @@ def validate_single_csv(
     convlstm,
     decoder,
     criterion,
+    seq_len_in,
     future_steps=3,
     T=None, X=None, Y=None, Z=None,
 ):
@@ -341,7 +340,6 @@ def validate_single_csv(
     dense, _, _, _, _ = load_sparse_csv_to_dense_2d(csv_path, T, X, Y, Z, device=device)
     B, T_total, C, H, W = dense.shape
 
-    seq_len_in = SEQ_LEN_IN
     min_required = seq_len_in + future_steps
     if T_total < min_required:
         return None
@@ -391,6 +389,7 @@ def train(
     convlstm,
     decoder,
     num_epochs,
+    seq_len_in,
     future_steps,
     checkpoint_path,
     load_checkpoint=False,
@@ -483,6 +482,7 @@ def train(
                 criterion, optimizer,
                 epoch, run_id,
                 layer_buffer=layer_buffer,
+                seq_len_in=seq_len_in,
                 future_steps=future_steps
             )
             if loss is not None:
@@ -497,7 +497,7 @@ def train(
 
         with torch.no_grad():
             for csv in val_files:
-                loss = validate_single_csv(csv, convlstm, decoder, criterion, future_steps)
+                loss = validate_single_csv(csv, convlstm, decoder, criterion, seq_len_in, future_steps)
                 if loss is not None:
                     val_losses.append(loss)
 
@@ -551,6 +551,7 @@ if __name__ == "__main__":
     parser.add_argument("--data", required=True)
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--future-steps", type=int, default=3)
+    parser.add_argument("--seq-len-in", type=int, default=9)
     parser.add_argument("--checkpoint", type=str, default="checkpoint.pth")
     parser.add_argument("--load-checkpoint", action="store_true")
     args = parser.parse_args()
@@ -567,6 +568,7 @@ if __name__ == "__main__":
         decoder=decoder,
         num_epochs=args.epochs,
         future_steps=args.future_steps,
+        seq_len_in=args.seq_len_in,
         checkpoint_path=args.checkpoint,
         load_checkpoint=args.load_checkpoint,
     )
