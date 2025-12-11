@@ -1,142 +1,222 @@
 #!/usr/bin/env python3
-import argparse
-import os
-import json
-from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor, as_completed
-
 import numpy as np
 import pandas as pd
 
+# ------------------------------
+# User parameters
+# ------------------------------
 
-def normalize_local_and_get_stats(df, num_last_cols=4):
+INPUT_CSV = "data/dense_data.csv"
+OUTPUT_CSV = "data/sparse_data.csv"
+
+TIME_DROP_FRAC   = 0.10  # Drop 10% of timesteps
+COORD_DROP_FRAC  = 0.60  # Drop 60% of (lat,lon) locations per timestep
+VALUE_DROP_FRAC  = 0.60  # Drop 60% of remaining values per variable
+
+RANDOM_SEED = 42
+
+# Expected variable names from your existing CSV
+rename_map = {
+    "r": "humidity (r)",
+    "t": "temperature (t)",
+    "u": "u-component of wind (u)",
+    "v": "v-component of wind (v)",
+}
+
+desired_cols = [
+    "time",
+    "latitude",
+    "longitude",
+    "humidity (r)",
+    "temperature (t)",
+    "u-component of wind (u)",
+    "v-component of wind (v)",
+]
+
+
+# ------------------------------
+# Running (causal) normalization
+# ------------------------------
+def running_normalize_time_first(arr, eps=1e-8):
     """
-    Sparse normalization:
-      - Compute column means/stds ignoring NaN
-      - Normalize only observed entries
-      - Leave missing values as NaN (remain sparse)
+    Causal (running) normalization for arr: shape (T, H, W).
+    NaNs stay NaN and are ignored in mean/std.
     """
-    target = df.iloc[:, -num_last_cols:].apply(pd.to_numeric, errors="coerce")
+    T, H, W = arr.shape
+    arr = arr.astype(np.float64, copy=False)
 
-    # Compute stats ignoring NaNs
-    means = target.mean(axis=0)
-    stds = target.std(axis=0, ddof=0)
+    means = np.zeros(T, dtype=np.float64)
+    stds  = np.ones(T, dtype=np.float64)
 
-    # Handle all-NaN or zero-std cases
-    means = means.fillna(0.0)
-    stds = stds.fillna(0.0)
-    
-    # Avoid division by zero → use NaN so normalization result stays NaN where needed
-    stds_safe = stds.replace(0, np.nan)
+    cum_count = 0.0
+    cum_sum   = 0.0
+    cum_sumsq = 0.0
 
-    # Normalize only real values
-    normalized = (target - means) / stds_safe
+    for t in range(T):
+        slice_ = arr[t]
+        mask = ~np.isnan(slice_)
+        if mask.any():
+            vals = slice_[mask]
+            cum_count += vals.size
+            cum_sum   += float(np.sum(vals))
+            cum_sumsq += float(np.sum(vals * vals))
 
-    # DO NOT modify NaNs — leave them as NaN
-    # DO NOT .fillna() at all
+        if cum_count > 0:
+            mean = cum_sum / cum_count
+            var  = cum_sumsq / cum_count - mean * mean
+            var = max(var, eps)
+            std = np.sqrt(var)
+        else:
+            mean, std = 0.0, 1.0
 
-    df.iloc[:, -num_last_cols:] = normalized
+        means[t] = mean
+        stds[t]  = std
 
-    return df, means.to_list(), stds.to_list(), list(target.columns)
+    means_3d = means.reshape(T, 1, 1)
+    stds_3d  = stds.reshape(T, 1, 1)
 
-
-
-def process_file(csv_path, output_dir, num_last_cols=4):
-    csv_path = Path(csv_path)
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    try:
-        df = pd.read_csv(csv_path)
-    except Exception as e:
-        return {
-            "file": csv_path.name,
-            "status": f"[ERROR] Could not read {csv_path}: {e}",
-            "means": None,
-            "stds": None,
-            "columns": None,
-        }
-
-    if df.shape[1] < num_last_cols:
-        return {
-            "file": csv_path.name,
-            "status": f"[SKIP] not enough columns",
-            "means": None,
-            "stds": None,
-            "columns": None,
-        }
-
-    df_norm, means, stds, cols = normalize_local_and_get_stats(
-        df, num_last_cols=num_last_cols
-    )
-
-    out_path = output_dir / csv_path.name
-    try:
-        df_norm.to_csv(out_path, index=False)
-    except Exception as e:
-        return {
-            "file": csv_path.name,
-            "status": f"[ERROR] Could not write {out_path}: {e}",
-            "means": None,
-            "stds": None,
-            "columns": None,
-        }
-
-    return {
-        "file": csv_path.name,
-        "status": f"[OK] {csv_path.name} → {out_path.name}",
-        "means": means,
-        "stds": stds,
-        "columns": cols,
-    }
+    return (arr - means_3d) / stds_3d, means, stds
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Locally z-score normalize the last N columns of sparse CSV files, preserving NaN sparsity."
-    )
-    parser.add_argument("input_dir", help="Directory containing CSVs")
-    parser.add_argument("output_dir", help="Where to save sparse-normalized CSVs")
-    parser.add_argument("--num-last-cols", type=int, default=4)
-    parser.add_argument("--workers", type=int, default=os.cpu_count())
-    parser.add_argument("--metadata-out", default="normalization_metadata.json")
+# ==========================================================
+# 1. LOAD CSV
+# ==========================================================
+df = pd.read_csv(INPUT_CSV)
 
-    args = parser.parse_args()
+# Standardize names if CSV uses r/t/u/v
+df = df.rename(columns=rename_map)
 
-    input_dir = Path(args.input_dir)
-    output_dir = Path(args.output_dir)
+for col in desired_cols:
+    if col not in df.columns:
+        raise ValueError(f"Input CSV missing required column: {col}")
 
-    csv_files = sorted(input_dir.glob("*.csv"))
-    if not csv_files:
-        print("No CSV files found.")
-        return
+df = df[desired_cols]
+df["time"] = pd.to_datetime(df["time"], format="mixed")
 
-    print(f"Found {len(csv_files)} CSV files")
-    print("Performing sparse normalization (NaNs preserved)\n")
+# ==========================================================
+# 2. Convert to dense 3D arrays (T, H, W)
+# ==========================================================
 
-    metadata = {}
+# Sort by time to establish ordering
+df = df.sort_values("time")
 
-    with ProcessPoolExecutor(max_workers=args.workers) as ex:
-        futures = {
-            ex.submit(process_file, f, output_dir, args.num_last_cols): f
-            for f in csv_files
-        }
+times_unique = df["time"].unique()
+lats_unique  = np.sort(df["latitude"].unique())
+lons_unique  = np.sort(df["longitude"].unique())
 
-        for fut in as_completed(futures):
-            result = fut.result()
-            print(result["status"])
-            if result["means"] is not None:
-                metadata[result["file"]] = {
-                    "means": result["means"],
-                    "stds": result["stds"],
-                    "columns": result["columns"],
-                }
+T = len(times_unique)
+H = len(lats_unique)
+W = len(lons_unique)
 
-    with open(args.metadata_out, "w") as f:
-        json.dump(metadata, f, indent=2)
+print(f"Loaded CSV: T={T}, H={H}, W={W}")
 
-    print(f"\nSaved metadata for {len(metadata)} files → {args.metadata_out}")
+# Build dense arrays filled with NaN
+r_arr = np.full((T, H, W), np.nan)
+t_arr = np.full((T, H, W), np.nan)
+u_arr = np.full((T, H, W), np.nan)
+v_arr = np.full((T, H, W), np.nan)
+
+# Index mapping
+time_index = {t: i for i, t in enumerate(times_unique)}
+lat_index  = {lat: i for i, lat in enumerate(lats_unique)}
+lon_index  = {lon: i for i, lon in enumerate(lons_unique)}
+
+for row in df.itertuples():
+    ti = time_index[row.time]
+    la = lat_index[row.latitude]
+    lo = lon_index[row.longitude]
+
+    r_arr[ti, la, lo] = row._4
+    t_arr[ti, la, lo] = row._5
+    u_arr[ti, la, lo] = row._6
+    v_arr[ti, la, lo] = row._7
 
 
-if __name__ == "__main__":
-    main()
+# ==========================================================
+# 3. DROP TIMESTEPS / COORDS / VALUES
+# ==========================================================
+
+rng = np.random.default_rng(RANDOM_SEED)
+
+# A) Drop 10% timesteps
+n_drop = int(TIME_DROP_FRAC * T)
+keep_mask = np.ones(T, dtype=bool)
+
+if n_drop > 0:
+    drop_idx = rng.choice(T, n_drop, replace=False)
+    keep_mask[drop_idx] = False
+
+times_keep = times_unique[keep_mask]
+r_arr = r_arr[keep_mask]
+t_arr = t_arr[keep_mask]
+u_arr = u_arr[keep_mask]
+v_arr = v_arr[keep_mask]
+
+T_keep = len(times_keep)
+
+# B) Drop 60% of (lat,lon) per timestep
+coord_drop = rng.random((T_keep, H, W)) < COORD_DROP_FRAC
+r_arr[coord_drop] = np.nan
+t_arr[coord_drop] = np.nan
+u_arr[coord_drop] = np.nan
+v_arr[coord_drop] = np.nan
+
+# C) Drop 60% of remaining values per variable
+if VALUE_DROP_FRAC > 0:
+    r_arr[rng.random(r_arr.shape) < VALUE_DROP_FRAC] = np.nan
+    t_arr[rng.random(t_arr.shape) < VALUE_DROP_FRAC] = np.nan
+    u_arr[rng.random(u_arr.shape) < VALUE_DROP_FRAC] = np.nan
+    v_arr[rng.random(v_arr.shape) < VALUE_DROP_FRAC] = np.nan
+
+
+# ==========================================================
+# 4. CAUSAL NORMALIZATION
+# ==========================================================
+
+r_arr, _, _ = running_normalize_time_first(r_arr)
+t_arr, _, _ = running_normalize_time_first(t_arr)
+u_arr, _, _ = running_normalize_time_first(u_arr)
+v_arr, _, _ = running_normalize_time_first(v_arr)
+
+# ==========================================================
+# 5. FLATTEN + DROP ALL-NaN rows
+# ==========================================================
+
+# Create coordinate grids
+lat_grid, lon_grid = np.meshgrid(lats_unique, lons_unique, indexing="ij")
+
+rows = []
+for ti in range(T_keep):
+    for la in range(H):
+        for lo in range(W):
+
+            vals = [
+                r_arr[ti, la, lo],
+                t_arr[ti, la, lo],
+                u_arr[ti, la, lo],
+                v_arr[ti, la, lo],
+            ]
+
+            if all(np.isnan(v) for v in vals):
+                continue
+
+            rows.append([
+                times_keep[ti],
+                lats_unique[la],
+                lons_unique[lo],
+                *vals,
+            ])
+
+df_out = pd.DataFrame(rows, columns=desired_cols)
+
+# Replace NaN with empty strings in variables
+for col in desired_cols[3:]:
+    df_out[col] = df_out[col].astype(object)
+    df_out.loc[df_out[col].isna(), col] = ""
+
+# ==========================================================
+# 6. SAVE SINGLE CSV
+# ==========================================================
+
+df_out.to_csv(OUTPUT_CSV, index=False)
+print(f"Saved output CSV: {OUTPUT_CSV} ({len(df_out)} rows)")

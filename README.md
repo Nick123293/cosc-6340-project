@@ -4,4 +4,3 @@ Instructions to use our code:
 3) Arguments are same for all training algorithms, for the memory aware models you can change the RAM limits at the top of each file. You can also change the number of input timesteps into the ConvLSTM using SEQ_LEN_IN at the top of each relevant file
 4) To test, use test.py with the following arguments: --data path to the data, --checkpoint the model you want to test, --future-steps (same as training, defaults to 3), --seq-len (same as SEQ_LEN_IN from training, defaults to 9)
 5) The data is located in ~/project/data one directory is for training and the other is for testing
-6) To query the computations,you must install psycopg2 by running pip install psycopg2-binary. Then you must train the model using either train_memory_aware.py, train_memory_aware_gpu.py, or train_memory_aware_one_window.py. Finally run python3 querying_computations.py

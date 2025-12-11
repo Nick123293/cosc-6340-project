@@ -1,106 +1,147 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-###############################################
-# User-configurable section
-###############################################
+# ---------------------------------------------------------
+# User configuration
+# ---------------------------------------------------------
 
-DATA="data/chunks_sparse_csv"   # <-- change if needed
+TRAIN_SCRIPT="train_no_checkpoint_no_DBMS.py"
 EPOCHS=5
-FUTURE_STEPS=3
 
-# Whether to pass --load-checkpoint to Python scripts
-LOAD_CHECKPOINT=false    # <-- set true if you want to resume
+TRAIN_FILE="data/training_data.csv"
+VAL_FILE="data/validation_data.csv"
 
 OUTFILE="benchmark_results.txt"
 
-CKPT_FULL="checkpoint_full.pth"
-CKPT_MEM="checkpoint_mem_aware.pth"
-CHPT_MEM_GPU="checkpoint_mem_aware_gpu.pth"
+# ---------------------------------------------------------
+# Helper: run one configuration 3 times and aggregate stats
+# ---------------------------------------------------------
 
-###############################################
-# Helper
-###############################################
+run_config() {
+    local config_id="$1"
+    local config_label="$2"
+    local extra_args="$3"
 
-run_experiment() {
-    local script_name="$1"   # train.py or train_memory_aware.py
-    local label="$2"         # "full" or "memory_aware"
-    local ckpt="$3"
+    echo "==================================================" | tee -a "$OUTFILE"
+    echo "CONFIG $config_id: $config_label" | tee -a "$OUTFILE"
+    echo "ARGS: $extra_args" | tee -a "$OUTFILE"
+    echo "--------------------------------------------------" | tee -a "$OUTFILE"
 
-    echo "========================================"
-    echo "Running ${label} (${script_name})..."
-    echo "========================================"
+    # Accumulators
+    local sum_time="0"
+    local sum_train="0"
+    local sum_val="0"
 
-    local tmp_output="tmp_${label}_output.log"
+    for run in 1 2 3; do
+        echo "[CONFIG $config_id] Run $run..." | tee -a "$OUTFILE"
 
-    local start end elapsed
-    start=$(date +%s)
+        # Call the training script.
+        #
+        # NOTE:
+        #   This assumes your Python script supports:
+        #     --train-csv and --val-csv
+        #   If your interface is different (e.g. --data with internal 80/20 split),
+        #   modify the PY_CMD line accordingly.
+        #
+        PY_CMD=(
+            python "$TRAIN_SCRIPT"
+            --train-csv "$TRAIN_FILE"
+            --val-csv "$VAL_FILE"
+            --epochs "$EPOCHS"
+        )
 
-    # Build Python args
-    local args=(
-        "${script_name}"
-        --data "${DATA}"
-        --epochs "${EPOCHS}"
-        --future-steps "${FUTURE_STEPS}"
-        --checkpoint "${ckpt}"
-    )
-    if [[ "${LOAD_CHECKPOINT}" == "true" ]]; then
-        args+=(--load-checkpoint)
-    fi
+        # Append the configuration-specific arguments
+        # shellcheck disable=SC2206
+        PY_CMD+=($extra_args)
 
-    # Capture stdout + stderr
-    python3 "${args[@]}" 2>&1 | tee "${tmp_output}"
+        # Capture full stdout/stderr
+        output="$("${PY_CMD[@]}" 2>&1)"
+        echo "$output" >> "$OUTFILE"
 
-    end=$(date +%s)
-    elapsed=$((end - start))
+        # Parse runtime, train loss, and validation loss from the output.
+        # Assumes the Python script prints lines like:
+        #   Total runtime: 12.34 seconds
+        #   Training Loss: 0.123456
+        #   Validation Loss: 0.234567
+        #
+        runtime=$(echo "$output" | awk -F': ' '/Total runtime/ {print $2}' | awk '{print $1}' | tail -n1)
+        train_loss=$(echo "$output" | awk -F': ' '/Training Loss/ {print $2}' | awk '{print $1}' | tail -n1)
+        val_loss=$(echo "$output" | awk -F': ' '/Validation Loss/ {print $2}' | awk '{print $1}' | tail -n1)
 
-    # Look for the last line that has train=
-    local last_line
-    last_line=$(grep "train=" "${tmp_output}" | tail -n 1 || true)
+        # Fallbacks if parsing fails
+        runtime="${runtime:-0}"
+        train_loss="${train_loss:-0}"
+        val_loss="${val_loss:-0}"
 
-    local train_loss="NA"
-    local val_loss="NA"
+        echo "[CONFIG $config_id] Run $run results: time=${runtime}s, train_loss=${train_loss}, val_loss=${val_loss}" \
+            | tee -a "$OUTFILE"
 
-    if [[ -z "${last_line}" ]]; then
-        echo "WARNING: No 'train=' lines found in ${label} run output."
-        echo "Check ${tmp_output} for errors or different log format."
-    else
-        # Grab the token after train= up to the next space
-        train_loss=$(echo "${last_line}" | sed -nE 's/.*train=([^ ]*).*/\1/p')
-        val_loss=$(echo "${last_line}"   | sed -nE 's/.*val=([^ ]*).*/\1/p')
+        # Accumulate using bc for floating point
+        sum_time=$(printf '%s + %s\n' "$sum_time" "$runtime" | bc -l)
+        sum_train=$(printf '%s + %s\n' "$sum_train" "$train_loss" | bc -l)
+        sum_val=$(printf '%s + %s\n' "$sum_val" "$val_loss" | bc -l)
 
-        [[ -z "${train_loss}" ]] && train_loss="NA"
-        [[ -z "${val_loss}"  ]] && val_loss="NA"
-    fi
+        echo "" >> "$OUTFILE"
+    done
 
-    {
-        echo "Run: ${label}"
-        echo "  Script:      ${script_name}"
-        echo "  Data:        ${DATA}"
-        echo "  Epochs:      ${EPOCHS}"
-        echo "  FutureSteps: ${FUTURE_STEPS}"
-        echo "  LoadCkpt:    ${LOAD_CHECKPOINT}"
-        echo "  Time (s):    ${elapsed}"
-        echo "  Train loss:  ${train_loss}"
-        echo "  Val loss:    ${val_loss}"
-        echo "----------------------------------------"
-    } >> "${OUTFILE}"
+    # Compute averages over the 3 runs
+    avg_time=$(printf '%s / 3\n' "$sum_time" | bc -l)
+    avg_train=$(printf '%s / 3\n' "$sum_train" | bc -l)
+    avg_val=$(printf '%s / 3\n' "$sum_val" | bc -l)
 
-    echo "Finished ${label}: time=${elapsed}s train=${train_loss} val=${val_loss}"
-    echo
+    # Format to 6 decimal places for losses, 2 for runtime
+    avg_time_fmt=$(printf '%.2f' "$avg_time")
+    avg_train_fmt=$(printf '%.6f' "$avg_train")
+    avg_val_fmt=$(printf '%.6f' "$avg_val")
+
+    echo ">>> AVERAGES for CONFIG $config_id over 3 runs:" | tee -a "$OUTFILE"
+    echo "    avg_time_s   = $avg_time_fmt" | tee -a "$OUTFILE"
+    echo "    avg_train    = $avg_train_fmt" | tee -a "$OUTFILE"
+    echo "    avg_val      = $avg_val_fmt" | tee -a "$OUTFILE"
+    echo "" | tee -a "$OUTFILE"
 }
 
-###############################################
-# Main
-###############################################
+# ---------------------------------------------------------
+# Define the 18 configurations
+# (Converted to the hyphenated argparse names)
+# ---------------------------------------------------------
 
-if [[ -f "${OUTFILE}" ]]; then
-    echo "Removing old ${OUTFILE}"
-    rm -f "${OUTFILE}"
-fi
+# Each config: ID | label | extra_args
+CONFIGS=(
+  "1|seq9_future3|--seq-len-in 9 --future-steps 3"
+#   "2|seq100_future10|--seq-len-in 100 --future-steps 10"
+#   "3|seq100_future100|--seq-len-in 100 --future-steps 100"
 
-# run_experiment "train.py" "full_memory" "${CKPT_FULL}"
-# run_experiment "train_memory_aware_one_window.py" "memory_aware" "${CKPT_MEM}"
-run_experiment "train_memory_aware_gpu.py" "memory_aware_gpu" "${CHPT_MEM_GPU}"
+  "2|seq9_future3_ram1G|--seq-len-in 9 --future-steps 3 --max-ram-bytes 1073741824"
+#   "5|seq100_future10_ram1G|--seq-len-in 100 --future-steps 10 --max-ram-bytes 1073741824"
+#   "6|seq100_future100_ram1G|--seq-len-in 100 --future-steps 100 --max-ram-bytes 1073741824"
 
-echo "All runs complete. Summary written to ${OUTFILE}"
+  "3|seq9_future3_vram1G|--seq-len-in 9 --future-steps 3 --max-vram-bytes 1073741824"
+#   "8|seq100_future10_vram1G|--seq-len-in 100 --future-steps 10 --max-vram-bytes 1073741824"
+#   "9|seq100_future100_vram1G|--seq-len-in 100 --future-steps 100 --max-vram-bytes 1073741824"
+
+  "4|seq9_future3_ram512M|--seq-len-in 9 --future-steps 3 --max-ram-bytes 536870912"
+#   "11|seq100_future10_ram512M|--seq-len-in 100 --future-steps 10 --max-ram-bytes 536870912"
+#   "12|seq100_future100_ram512M|--seq-len-in 100 --future-steps 100 --max-ram-bytes 536870912"
+
+  "5|seq9_future3_vram512M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 536870912"
+#   "14|seq100_future10_vram512M|--seq-len-in 100 --future-steps 10 --max-vram-bytes 536870912"
+#   "15|seq100_future100_vram512M|--seq-len-in 100 --future-steps 100 --max-vram-bytes 536870912"
+  "6|seq9_future3_vram256M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 268435456"
+  "7|seq9_future3_vram256M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 268435456"
+
+)
+
+# ---------------------------------------------------------
+# Main loop over configurations
+# ---------------------------------------------------------
+
+# Truncate output file at start
+: > "$OUTFILE"
+
+for cfg in "${CONFIGS[@]}"; do
+    IFS='|' read -r cfg_id cfg_label cfg_args <<< "$cfg"
+    run_config "$cfg_id" "$cfg_label" "$cfg_args"
+done
+
+echo "All configurations completed. Results saved to: $OUTFILE"
