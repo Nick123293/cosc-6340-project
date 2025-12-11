@@ -81,28 +81,6 @@ run_config() {
         sum_train=$(printf '%s + %s\n' "$sum_train" "$train_loss" | bc -l)
         sum_val=$(printf '%s + %s\n' "$sum_val" "$val_loss" | bc -l)
 
-        # For memory-aware runs (RAM or VRAM constrained), capture effective params.
-        if [[ "$extra_args" == *"--max-ram-bytes"* || "$extra_args" == *"--max-vram-bytes"* ]]; then
-            # These patterns should match lines your script prints, e.g.:
-            #   effective_seq_len_in=...
-            #   effective_future_steps=...
-            #   max_timesteps_in_memory=...
-            #
-            # Adjust the patterns if your log format is different.
-            eff_seq=$(echo "$output" | awk -F'=' '/effective_seq_len_in/ {print $2}' | tail -n1)
-            eff_future=$(echo "$output" | awk -F'=' '/effective_future_steps/ {print $2}' | tail -n1)
-            max_ts=$(echo "$output" | awk -F'=' '/max_timesteps_in_memory/ {print $2}' | tail -n1)
-
-            eff_seq="${eff_seq:-N/A}"
-            eff_future="${eff_future:-N/A}"
-            max_ts="${max_ts:-N/A}"
-
-            echo "[CONFIG $config_id] Run $run memory-aware info:" | tee -a "$OUTFILE"
-            echo "    effective_seq_len_in   = $eff_seq" | tee -a "$OUTFILE"
-            echo "    effective_future_steps = $eff_future" | tee -a "$OUTFILE"
-            echo "    max_timesteps_in_memory= $max_ts" | tee -a "$OUTFILE"
-        fi
-
         echo "" >> "$OUTFILE"
     done
 
@@ -131,24 +109,24 @@ run_config() {
 # Each config: ID | label | extra_args
 CONFIGS=(
   "1|seq9_future3|--seq-len-in 9 --future-steps 3"
-  "2|seq100_future10|--seq-len-in 100 --future-steps 10"
-  "3|seq100_future100|--seq-len-in 100 --future-steps 100"
+#   "2|seq100_future10|--seq-len-in 100 --future-steps 10"
+#   "3|seq100_future100|--seq-len-in 100 --future-steps 100"
 
-  "4|seq9_future3_ram1G|--seq-len-in 9 --future-steps 3 --max-ram-bytes 1073741824"
-  "5|seq100_future10_ram1G|--seq-len-in 100 --future-steps 10 --max-ram-bytes 1073741824"
-  "6|seq100_future100_ram1G|--seq-len-in 100 --future-steps 100 --max-ram-bytes 1073741824"
+  "2|seq9_future3_ram1G|--seq-len-in 9 --future-steps 3 --max-ram-bytes 1073741824"
+#   "5|seq100_future10_ram1G|--seq-len-in 100 --future-steps 10 --max-ram-bytes 1073741824"
+#   "6|seq100_future100_ram1G|--seq-len-in 100 --future-steps 100 --max-ram-bytes 1073741824"
 
-  "7|seq9_future3_vram1G|--seq-len-in 9 --future-steps 3 --max-vram-bytes 1073741824"
-  "8|seq100_future10_vram1G|--seq-len-in 100 --future-steps 10 --max-vram-bytes 1073741824"
-  "9|seq100_future100_vram1G|--seq-len-in 100 --future-steps 100 --max-vram-bytes 1073741824"
+  "3|seq9_future3_vram1G|--seq-len-in 9 --future-steps 3 --max-vram-bytes 1073741824"
+#   "8|seq100_future10_vram1G|--seq-len-in 100 --future-steps 10 --max-vram-bytes 1073741824"
+#   "9|seq100_future100_vram1G|--seq-len-in 100 --future-steps 100 --max-vram-bytes 1073741824"
 
-  "10|seq9_future3_ram512M|--seq-len-in 9 --future-steps 3 --max-ram-bytes 536870912"
-  "11|seq100_future10_ram512M|--seq-len-in 100 --future-steps 10 --max-ram-bytes 536870912"
-  "12|seq100_future100_ram512M|--seq-len-in 100 --future-steps 100 --max-ram-bytes 536870912"
+  "4|seq9_future3_ram512M|--seq-len-in 9 --future-steps 3 --max-ram-bytes 536870912"
+#   "11|seq100_future10_ram512M|--seq-len-in 100 --future-steps 10 --max-ram-bytes 536870912"
+#   "12|seq100_future100_ram512M|--seq-len-in 100 --future-steps 100 --max-ram-bytes 536870912"
 
-  "13|seq9_future3_vram512M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 536870912"
-  "14|seq100_future10_vram512M|--seq-len-in 100 --future-steps 10 --max-vram-bytes 536870912"
-  "15|seq100_future100_vram512M|--seq-len-in 100 --future-steps 100 --max-vram-bytes 536870912"
+  "5|seq9_future3_vram512M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 536870912"
+#   "14|seq100_future10_vram512M|--seq-len-in 100 --future-steps 10 --max-vram-bytes 536870912"
+#   "15|seq100_future100_vram512M|--seq-len-in 100 --future-steps 100 --max-vram-bytes 536870912"
 )
 
 # ---------------------------------------------------------
