@@ -1,7 +1,6 @@
 import argparse
 import os
 import json
-import time  # <--- NEW: For measuring runtime
 import pandas as pd
 import numpy as np
 import torch
@@ -31,9 +30,10 @@ SEQ_LEN_IN = 9  # input sequence length (same as full memory version)
 
 def load_sparse_csv_to_dense_2d(
     csv_path,
-    T=None, X=None, Y=None, Z=None,   # Z kept for API compatibility, ignored
+    T=None, X=None, Y=None, Z=None,
     device="cpu",
-    time_filter_indices=None
+    # NEW: Add argument for optional time filtering
+    time_filter_indices=None  # tuple (start_idx, end_idx)
 ):
     """
     Load a sparse CSV (time, x, y, 4 channels) and produce a dense tensor:
@@ -73,33 +73,6 @@ def load_sparse_csv_to_dense_2d(
     # ---- 2. Build full hourly timeline (fills missing timesteps) ----
     t_min, t_max = t_raw.min(), t_raw.max()
     t_full = pd.date_range(start=t_min, end=t_max, freq="h")
-
-    # === NEW FILTERING LOGIC START ===
-    if time_filter_indices is not None:
-        start_idx, end_idx = time_filter_indices
-        # Clamp indices to ensure they are valid
-        start_idx = max(0, start_idx)
-        end_idx = min(len(t_full), end_idx)
-        
-        # 1. Slice the global timeline to the requested window
-        t_full = t_full[start_idx:end_idx]
-        
-        if len(t_full) == 0:
-            raise ValueError(f"Time filter {time_filter_indices} resulted in 0 timesteps.")
-
-        # 2. Filter raw CSV rows to only keep those in the new window
-        valid_min = t_full[0]
-        valid_max = t_full[-1]
-        mask = (t_raw >= valid_min) & (t_raw <= valid_max)
-        
-        t_raw = t_raw[mask]
-        x_raw = x_raw[mask]
-        y_raw = y_raw[mask]
-        feats = feats[mask]
-        
-        print(f"[FILTER] Keeping timesteps {start_idx}-{end_idx} ({len(t_full)} total). CSV rows: {len(t_raw)}")
-    # === NEW FILTERING LOGIC END ===
-
     t_full_values = t_full.values
     nT_full = len(t_full_values)
 
@@ -214,21 +187,12 @@ def init_db(reset_tables=True, seq_len=9):
             cursor.execute("DROP TABLE IF EXISTS training_runs CASCADE;")
             conn.commit()
 
-        # UPDATED: Added columns for metadata (ram, filters, epochs, runtime)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS training_runs (
                 id SERIAL PRIMARY KEY,
                 started_at TIMESTAMPTZ DEFAULT NOW(),
                 data_path TEXT NOT NULL,
                 future_steps INT NOT NULL,
-                
-                -- NEW COLUMNS
-                ram_limit_bytes BIGINT,
-                time_start INT,
-                time_end INT,
-                total_epochs INT,
-                runtime_seconds DOUBLE PRECISION,
-                
                 model_config JSONB NOT NULL,
                 optimizer_config JSONB NOT NULL,
                 notes TEXT
@@ -252,6 +216,8 @@ def init_db(reset_tables=True, seq_len=9):
 
         # ---- Partitioned Table for Computations ----
         # 1. Create the parent partitioned table
+        # We remove the PRIMARY KEY on 'id' because partitioned tables cannot have
+        # a unique key that doesn't include the partition key (time_step).
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS layer_computations (
                 id SERIAL,
@@ -282,27 +248,14 @@ def init_db(reset_tables=True, seq_len=9):
         return None, None
 
 
-# UPDATED: Accept and insert new configuration variables
-def create_training_run(
-    conn, cursor, data_path, future_steps, 
-    ram_limit_bytes, time_start, time_end, total_epochs,  # <--- NEW ARGS
-    model_config, optimizer_config, notes=None
-):
+def create_training_run(conn, cursor, data_path, future_steps, model_config, optimizer_config, notes=None):
     cursor.execute(
         """
-        INSERT INTO training_runs (
-            data_path, future_steps, ram_limit_bytes, 
-            time_start, time_end, total_epochs,
-            model_config, optimizer_config, notes
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO training_runs (data_path, future_steps, model_config, optimizer_config, notes)
+        VALUES (%s, %s, %s, %s, %s)
         RETURNING id;
         """,
-        (
-            data_path, future_steps, ram_limit_bytes, 
-            time_start, time_end, total_epochs,
-            json.dumps(model_config), json.dumps(optimizer_config), notes
-        ),
+        (data_path, future_steps, json.dumps(model_config), json.dumps(optimizer_config), notes),
     )
     run_id = cursor.fetchone()[0]
     conn.commit()
@@ -328,19 +281,6 @@ def log_epoch_metrics(
             run_id, epoch, train_loss, val_loss,
             n_train_samples, n_val_samples, learning_rate, checkpoint_path
         )
-    )
-    conn.commit()
-
-
-# NEW FUNCTION: Update the run with total runtime at the end
-def update_run_runtime(conn, cursor, run_id, runtime_seconds):
-    cursor.execute(
-        """
-        UPDATE training_runs
-        SET runtime_seconds = %s
-        WHERE id = %s;
-        """,
-        (runtime_seconds, run_id)
     )
     conn.commit()
 
@@ -399,7 +339,6 @@ def train_single_csv(
     future_steps=3,
     T=None, X=None, Y=None, Z=None,
     layer_buffer=None,
-    time_filter_indices=None,
 ):
     """
     Load full CSV into a dense CPU tensor once, then process it on the GPU
@@ -412,8 +351,7 @@ def train_single_csv(
 
     # 1) Load full dense tensor on CPU
     dense_cpu, _, _, _, _ = load_sparse_csv_to_dense_2d(
-        csv_path, T, X, Y, Z, device="cpu",
-        time_filter_indices=time_filter_indices
+        csv_path, T, X, Y, Z, device="cpu"
     )
     B, T_total, C, H, W = dense_cpu.shape
 
@@ -514,13 +452,11 @@ def validate_single_csv(
     criterion,
     future_steps=3,
     T=None, X=None, Y=None, Z=None,
-    time_filter_indices=None,
 ):
     device = next(convlstm.parameters()).device
 
     dense_cpu, _, _, _, _ = load_sparse_csv_to_dense_2d(
-        csv_path, T, X, Y, Z, device="cpu",
-        time_filter_indices=time_filter_indices
+        csv_path, T, X, Y, Z, device="cpu"
     )
     B, T_total, C, H, W = dense_cpu.shape
 
@@ -588,11 +524,7 @@ def train(
     future_steps,
     checkpoint_path,
     load_checkpoint=False,
-    time_start=None,
-    time_end=None
 ):
-    start_time = time.time()  # <--- Start Timer
-
     device = next(convlstm.parameters()).device
 
     # Load checkpoint if necessary
@@ -612,12 +544,6 @@ def train(
         list(convlstm.parameters()) + list(decoder.parameters()),
         lr=1e-3,
     )
-
-    # Create the filter tuple once
-    if time_start is not None and time_end is not None:
-        filter_idx = (time_start, time_end)
-    else:
-        filter_idx = None
 
     # Determine CSVs
     if os.path.isdir(data_path):
@@ -665,13 +591,9 @@ def train(
         conn, cursor,
         data_path=data_path,
         future_steps=future_steps,
-        ram_limit_bytes=GPU_MAX_BYTES,  # <--- Pass Global Constant
-        time_start=time_start,          # <--- Pass Arg
-        time_end=time_end,              # <--- Pass Arg
-        total_epochs=num_epochs,        # <--- Pass Arg
         model_config=model_config,
         optimizer_config=optimizer_config,
-        notes=f"load_checkpoint={load_checkpoint}, filter={filter_idx}",
+        notes=f"load_checkpoint={load_checkpoint}",
     )
 
     # -------------------------------
@@ -693,7 +615,6 @@ def train(
                 conn, cursor,
                 future_steps=future_steps,
                 layer_buffer=layer_rows_buffer,
-                time_filter_indices=filter_idx  # <--- PASS THE TUPLE
             )
             if loss is not None:
                 train_losses.append(loss)
@@ -710,10 +631,7 @@ def train(
         val_losses = []
 
         for csv in val_files:
-            loss = validate_single_csv(
-                csv, convlstm, decoder, criterion, future_steps,
-                time_filter_indices=filter_idx # also filter validation
-            )
+            loss = validate_single_csv(csv, convlstm, decoder, criterion, future_steps)
             if loss is not None:
                 val_losses.append(loss)
 
@@ -739,16 +657,6 @@ def train(
             os.path.abspath(checkpoint_path) if checkpoint_path else None,
         )
 
-    # End of training loop - calculate and save runtime
-    total_runtime = time.time() - start_time
-    update_run_runtime(conn, cursor, run_id, total_runtime)
-    print(f"[DB] Run complete. Total runtime: {total_runtime:.2f}s")
-
-    # optional: close connection
-    if conn is not None:
-        cursor.close()
-        conn.close()
-
 
 # ---------------------------------------------------------
 # 7. ENTRY POINT
@@ -761,9 +669,6 @@ if __name__ == "__main__":
     parser.add_argument("--future-steps", type=int, default=3)
     parser.add_argument("--checkpoint", type=str, default="checkpoint.pth")
     parser.add_argument("--load-checkpoint", action="store_true")
-    # NEW ARGUMENTS
-    parser.add_argument("--time-start", type=int, default=None, help="Start timestep index")
-    parser.add_argument("--time-end", type=int, default=None, help="End timestep index")
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -780,6 +685,4 @@ if __name__ == "__main__":
         future_steps=args.future_steps,
         checkpoint_path=args.checkpoint,
         load_checkpoint=args.load_checkpoint,
-        time_start=args.time_start,
-        time_end=args.time_end
     )

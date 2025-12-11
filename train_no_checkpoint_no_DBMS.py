@@ -1,7 +1,7 @@
 import argparse
 import os
 import time
-
+import json  # <--- Replaces psycopg2 for this script
 import numpy as np
 import pandas as pd
 import torch
@@ -19,9 +19,6 @@ def estimate_row_sizes(csv_path, max_sample_rows=1000):
     """
     Use the first up to `max_sample_rows` data rows (excluding header)
     to estimate per-row size in bytes.
-
-    Prints and returns:
-        avg_bytes, min_bytes, max_bytes
     """
     sizes = []
     with open(csv_path, "rb") as f:
@@ -49,18 +46,6 @@ def estimate_row_sizes(csv_path, max_sample_rows=1000):
 
 
 def adjust_window_lengths(seq_len_in_arg, future_steps_arg, timestep_capacity):
-    """
-    Given original seq_len_in and future_steps, and a maximum total number of
-    timesteps we can hold at once (timestep_capacity), choose new
-    (seq_len_in, future_steps) such that:
-
-      - seq_len_in + future_steps <= timestep_capacity
-      - seq_len_in <= seq_len_in_arg, future_steps <= future_steps_arg
-      - seq_len_in >= 1, future_steps >= 1
-      - The ratio seq_len_in : future_steps is as close as possible to the
-        original ratio, preferring higher total timesteps and preferring
-        seq_len_in to be higher when an exact ratio cannot be achieved.
-    """
     if timestep_capacity is None:
         return seq_len_in_arg, future_steps_arg
 
@@ -100,7 +85,6 @@ def adjust_window_lengths(seq_len_in_arg, future_steps_arg, timestep_capacity):
             best_pair = local_best_pair
             best_total = total
             best_ratio_diff = local_best_ratio_diff
-            # Because we iterate total from largest down, first valid is max.
             break
 
     if best_pair is None:
@@ -123,42 +107,22 @@ def analyze_csv_and_memory(
     future_steps_arg,
     max_ram_bytes=None,
     max_vram_bytes=None,
+    time_filter_indices=None  # <--- NEW: Filter Arg
 ):
     """
-    - Estimates sparse row size (avg/min/max).
-    - Streams through the full CSV in sparse chunks to estimate:
-        * total_rows
-        * global time range (t_min, t_max)
-        * global unique x, y sets
-    - From t_min..t_max (hourly), derives:
-        * total_timesteps (T_total)
-        * approximate rows_per_timestep
-        * CSV bytes per timestep (sparse)
-        * dense bytes per timestep (1, C=4, H, W, float32)
-    - Uses these to compute a timestep_capacity from:
-        * RAM limit based on BOTH sparse and dense
-        * VRAM limit based on dense only
-    - Adjusts seq_len_in and future_steps accordingly.
-
-    Returns:
-        t_full (DatetimeIndex),
-        x_unique (np.array),
-        y_unique (np.array),
-        timestep_capacity (int or None),
-        rows_per_chunk_csv (int or None),
-        new_seq_len_in,
-        new_future_steps
+    Scans CSV for full time range, then optionally filters it.
+    Re-calculates memory usage based on the *filtered* duration.
     """
     avg_bytes, min_bytes, max_bytes = estimate_row_sizes(csv_path)
 
     # First pass: find t_min, t_max, global x/y sets, total_rows.
-    total_rows = 0
+    total_rows_scanned = 0
     t_min = None
     t_max = None
     x_values = set()
     y_values = set()
 
-    # Scan in moderate chunks; RAM for this pass is bounded by chunk size.
+    # Scan in moderate chunks
     scan_chunksize = 100000
     print(f"[MEM] Scanning CSV for global structure with chunksize={scan_chunksize} rows...")
 
@@ -166,7 +130,7 @@ def analyze_csv_and_memory(
         if chunk.empty:
             continue
 
-        total_rows += len(chunk)
+        total_rows_scanned += len(chunk)
 
         t_col = pd.to_datetime(chunk.iloc[:, 0])
         c_min = t_col.min()
@@ -177,35 +141,54 @@ def analyze_csv_and_memory(
         x_values.update(chunk.iloc[:, 1].astype(float).unique())
         y_values.update(chunk.iloc[:, 2].astype(float).unique())
 
-    if total_rows == 0:
+    if total_rows_scanned == 0:
         raise ValueError(f"[DATA] CSV appears empty: {csv_path}")
 
     # Global hourly timeline (dense time axis)
     t_full = pd.date_range(start=t_min, end=t_max, freq="h")
+    
+    # === NEW: Apply Time Filter ===
+    if time_filter_indices is not None:
+        start_idx, end_idx = time_filter_indices
+        start_idx = max(0, start_idx)
+        end_idx = min(len(t_full), end_idx)
+        
+        t_full = t_full[start_idx:end_idx]
+        if len(t_full) == 0:
+            raise ValueError(f"Time filter {time_filter_indices} resulted in 0 timesteps.")
+            
+        print(f"[FILTER] Restricting training to timesteps {start_idx}-{end_idx} ({len(t_full)} hours).")
+        
+        # Adjust total_rows estimate based on the fraction of time kept
+        fraction_kept = len(t_full) / ((t_max - t_min).total_seconds() / 3600 + 1)
+        total_rows_estimated = int(total_rows_scanned * fraction_kept)
+    else:
+        total_rows_estimated = total_rows_scanned
+
     T_total = len(t_full)
 
     x_unique = np.array(sorted(x_values), dtype=float)
     y_unique = np.array(sorted(y_values), dtype=float)
     H = len(y_unique)
     W = len(x_unique)
-    C = 4  # assuming 4 feature channels (last 4 CSV columns)
+    C = 4
     B = 1
     bytes_per_timestep_dense = float(B * C * H * W * 4)  # float32
 
-    rows_per_timestep = float(total_rows) / float(T_total)
+    # Avoid division by zero if single timestep
+    if T_total > 0:
+        rows_per_timestep = float(total_rows_estimated) / float(T_total)
+    else:
+        rows_per_timestep = 0
+        
     bytes_per_timestep_csv = avg_bytes * rows_per_timestep
 
-    print(f"[MEM] Total sparse rows in CSV: {total_rows}")
-    print(f"[MEM] Dense hourly timesteps (t_min→t_max): {T_total}")
-    print(f"[MEM] Unique X coords: {W}, unique Y coords: {H}")
-    print(f"[MEM] Approx rows per timestep: {rows_per_timestep:.2f}")
-    print(f"[MEM] Approx CSV bytes per timestep (sparse): {bytes_per_timestep_csv:.2f}")
-    print(f"[MEM] Approx dense bytes per timestep: {bytes_per_timestep_dense:.2f} "
-          f"(B=1, C={C}, H={H}, W={W})")
+    print(f"[MEM] Effective dense hourly timesteps: {T_total}")
+    print(f"[MEM] Approx dense bytes per timestep: {bytes_per_timestep_dense:.2f}")
 
     timestep_limits = []
 
-    # RAM limit: consider BOTH sparse CSV and dense tensor sizes.
+    # RAM limit
     if max_ram_bytes is not None and max_ram_bytes > 0:
         if bytes_per_timestep_csv > 0:
             t_ram_sparse = int(max_ram_bytes // bytes_per_timestep_csv)
@@ -217,7 +200,6 @@ def analyze_csv_and_memory(
         else:
             t_ram_dense = None
 
-        # Combine: we need to satisfy both sparse + dense, so we take min.
         ram_candidates = []
         if t_ram_sparse is not None and t_ram_sparse > 0:
             ram_candidates.append(t_ram_sparse)
@@ -227,76 +209,36 @@ def analyze_csv_and_memory(
         if ram_candidates:
             t_ram = max(3, min(ram_candidates))
             timestep_limits.append(t_ram)
-            print(f"[MEM] Based on max-ram-bytes={max_ram_bytes}, "
-                  f"timestep capacity (sparse+dense) ≈ {t_ram}")
-        else:
-            print("[MEM] Unable to derive RAM-based timestep capacity (degenerate sizes).")
 
-    # VRAM limit: dense tensor bytes only.
+    # VRAM limit
     if max_vram_bytes is not None and max_vram_bytes > 0:
         if bytes_per_timestep_dense > 0:
             t_vram = int(max_vram_bytes // bytes_per_timestep_dense)
             t_vram = max(3, t_vram)
             timestep_limits.append(t_vram)
-            print(f"[MEM] Based on max-vram-bytes={max_vram_bytes}, "
-                  f"timestep capacity (dense on GPU) ≈ {t_vram}")
-        else:
-            print("[MEM] Unable to derive VRAM-based timestep capacity (degenerate dense size).")
 
     if timestep_limits:
         timestep_capacity = min(timestep_limits)
-        # Cap by total timesteps available
         timestep_capacity = min(timestep_capacity, T_total)
-        print(
-            f"[MEM] Effective timestep capacity (min over RAM/VRAM and T_total) = "
-            f"{timestep_capacity}"
-        )
     else:
         timestep_capacity = None
-        print("[MEM] No RAM/VRAM limits provided; effective timestep capacity is unbounded.")
 
-    # Adjust (seq_len_in, future_steps) based on timestep_capacity
+    # Adjust window lengths
     if timestep_capacity is not None:
         new_seq_len_in, new_future_steps = adjust_window_lengths(
             seq_len_in_arg,
             future_steps_arg,
             timestep_capacity
         )
-        print(
-            f"[MEM] Adjusting window lengths due to memory limits: "
-            f"seq_len_in {seq_len_in_arg} → {new_seq_len_in}, "
-            f"future_steps {future_steps_arg} → {new_future_steps}"
-        )
     else:
         new_seq_len_in, new_future_steps = seq_len_in_arg, future_steps_arg
-        print(
-            "[MEM] Using original seq_len_in and future_steps "
-            "because timestep capacity is unbounded."
-        )
 
-    # Explicitly print how many timesteps we can keep in memory
-    if timestep_capacity is not None:
-        print(
-            f"[MEM] Final effective timestep capacity (timesteps in memory) = "
-            f"{timestep_capacity}"
-        )
-    else:
-        print(
-            "[MEM] Final effective timestep capacity: no explicit limit; "
-            "dense blocks may span full timeline."
-        )
-
-    # Choose rows_per_chunk for sparse CSV reading.
-    # Approximate: keep chunk moderate. If no RAM limit, just use a default.
+    # Rows per chunk for sparse reading
     if max_ram_bytes is not None and max_ram_bytes > 0 and avg_bytes > 0:
         approx_rows = int(max_ram_bytes // avg_bytes)
-        # Keep this from being absurdly large
         rows_per_chunk_csv = max(1, min(approx_rows, 100000))
     else:
         rows_per_chunk_csv = 100000
-
-    print(f"[MEM] Using rows_per_chunk_csv={rows_per_chunk_csv} "
-          f"for sparse CSV reading.")
 
     return (
         t_full,
@@ -322,19 +264,11 @@ def load_sparse_df_to_dense_2d_fixed_grid(
     device="cpu",
 ):
     """
-    Convert a sparse DataFrame (time, x, y, last-4 feature columns) for a
-    GIVEN local time range [t_start, t_end] to a dense tensor:
-
-        dense: (B=1, T_block, C=4, H=len(y_unique), W=len(x_unique))
-
-    - The time axis is an hourly range from t_start to t_end (inclusive).
-    - The spatial axes use the GLOBAL fixed x_unique / y_unique.
+    Convert a sparse DataFrame for a GIVEN local time range [t_start, t_end] 
+    to a dense tensor.
     """
     if df.shape[1] < 5:
-        raise ValueError(
-            "Chunk DataFrame must have at least 5 columns: "
-            "time, x, y, and feature columns."
-        )
+        raise ValueError("Chunk DataFrame must have at least 5 columns.")
 
     t_raw = pd.to_datetime(df.iloc[:, 0])
     x_raw = df.iloc[:, 1].astype(float)
@@ -342,39 +276,31 @@ def load_sparse_df_to_dense_2d_fixed_grid(
 
     feats = df.iloc[:, -4:].astype(float).fillna(0.0)
     C = feats.shape[1]
-    if C != 4:
-        # Not strictly required, but we log a warning.
-        print(f"[WARN] Expected 4 feature columns, found {C}. Proceeding anyway.")
 
     # Local hourly timeline for the block.
     t_block = pd.date_range(start=t_start, end=t_end, freq="h")
     t_block_vals = t_block.values
     T_block = len(t_block_vals)
 
-    # Index maps
     time_to_index = {ts: i for i, ts in enumerate(t_block_vals)}
     x_index = {val: i for i, val in enumerate(x_unique)}
     y_index = {val: i for i, val in enumerate(y_unique)}
 
-    # Allocate dense tensor
     B = 1
     H = len(y_unique)
     W = len(x_unique)
-    dense = torch.zeros((B, T_block, C, H, W),
-                        device=device, dtype=torch.float32)
+    dense = torch.zeros((B, T_block, C, H, W), device=device, dtype=torch.float32)
 
-    # Filter rows whose time really lies within [t_start, t_end]
     mask = (t_raw >= t_start) & (t_raw <= t_end)
     if not mask.any():
-        return dense  # block is all zeros
+        return dense 
 
     df = df.loc[mask]
     t_raw = t_raw[mask]
     x_raw = x_raw[mask]
     y_raw = y_raw[mask]
-    feats = df.iloc[:, -4:].astype(float).fillna(0.0).values  # (N, C)
+    feats = df.iloc[:, -4:].astype(float).fillna(0.0).values 
 
-    # Convert to indices
     t_idx = np.array([time_to_index[ts] for ts in t_raw.values], dtype=np.int64)
     x_idx = np.array([x_index[xv] for xv in x_raw.values], dtype=np.int64)
     y_idx = np.array([y_index[yv] for yv in y_raw.values], dtype=np.int64)
@@ -398,12 +324,8 @@ def build_dense_block_from_csv(
     rows_per_chunk_csv,
 ):
     """
-    Build a dense (1, T_block, C, H, W) tensor for the time range
-    [t_start, t_end], using the GLOBAL fixed grid (x_unique, y_unique).
-
-    The CSV is read in sparse chunks of size rows_per_chunk_csv and filtered
-    to only include rows within [t_start, t_end]. Multiple sparse chunks are
-    loaded sequentially as needed to assemble the dense block.
+    Build a dense tensor for [t_start, t_end] by reading the CSV in chunks.
+    This respects the 'On-the-fly' philosophy by not loading the whole file.
     """
     collected = []
     chunksize = rows_per_chunk_csv or 100000
@@ -419,7 +341,6 @@ def build_dense_block_from_csv(
         collected.append(sub)
 
     if not collected:
-        # No data rows in this time range; return all-zero dense block.
         dense_empty = load_sparse_df_to_dense_2d_fixed_grid(
             pd.DataFrame(columns=["time", "x", "y", "c1", "c2", "c3", "c4"]),
             t_start,
@@ -443,20 +364,7 @@ def build_dense_block_from_csv(
 
 
 # =========================================================
-# 2. COMPRESSION (2D → vector) — kept for completeness
-# =========================================================
-
-def compress_2d_to_vector(tensor_5d):
-    """
-    tensor_5d: (B, T, C, H, W)
-    Returns:   (B, T, C) = spatial mean over H, W.
-    """
-    return torch.mean(tensor_5d, dim=[3, 4])
-
-
-# =========================================================
 # 3. Core sliding-window processing over full timeline
-#    with RAM/VRAM-limited dense blocks
 # =========================================================
 
 def process_csv_with_blocks(
@@ -475,49 +383,29 @@ def process_csv_with_blocks(
     optimizer=None,
     epoch=0,
 ):
-    """
-    Process ALL sliding windows over the FULL dense timeline, while
-    respecting RAM/VRAM limits via dense time blocks.
-
-    - t_full: global hourly timeline (DatetimeIndex).
-    - x_unique, y_unique: global spatial grid.
-    - timestep_capacity: maximum timesteps we allow in a dense block.
-    - rows_per_chunk_csv: sparse CSV chunk size for building dense blocks.
-
-    Every global sliding window of length (seq_len_in + future_steps) is
-    processed exactly once, even if it spans sparse CSV chunk boundaries.
-    """
     device = next(convlstm.parameters()).device
     T_total = len(t_full)
     W_len = seq_len_in + future_steps
 
     if T_total < W_len:
-        print(
-            f"[WARN] CSV {csv_path} has fewer timesteps ({T_total}) "
-            f"than required window length ({W_len}); skipping."
-        )
+        print(f"[WARN] Timeline has fewer timesteps ({T_total}) than window length ({W_len}).")
         return None
 
-    # Determine dense-block size (in timesteps).
     if timestep_capacity is None or timestep_capacity >= T_total:
         T_block = T_total
     else:
         T_block = timestep_capacity
 
-    # Ensure block can at least contain one full window.
     if T_block < W_len:
         T_block = W_len
 
-    # Overlap blocks so that windows that cross block boundaries are seen.
     block_stride = T_block - (W_len - 1) if T_block > W_len else 1
 
     total_loss = 0.0
     n_windows = 0
-    global_last_processed_start = -1  # global start index of last processed window
+    global_last_processed_start = -1 
 
-    # Iterate over blocks by global time index.
-    # We only need to start blocks up to (T_total - W_len), because all windows
-    # beyond that are shorter than required.
+    # Iterate over blocks by global time index from the SLICED timeline
     for block_start_idx in range(0, T_total - W_len + 1, block_stride):
         block_end_idx = min(block_start_idx + T_block, T_total)
         t_start = t_full[block_start_idx]
@@ -535,7 +423,6 @@ def process_csv_with_blocks(
         B, T_block_actual, C, H, W = dense_block.shape
 
         if T_block_actual < W_len:
-            # Not enough timesteps in this block to form a full window
             del dense_block
             if device == "cuda":
                 torch.cuda.empty_cache()
@@ -546,27 +433,23 @@ def process_csv_with_blocks(
         for local_start in range(local_max_start + 1):
             global_start = block_start_idx + local_start
             if global_start <= global_last_processed_start:
-                # This window was already covered in a previous (overlapping) block.
                 continue
 
-            # Extract global window from this dense block.
-            window = dense_block[:, local_start:local_start + W_len]   # (B, W_len, C, H, W)
-            x_in = window[:, :seq_len_in]                              # (B, seq_len_in, C, H, W)
-            y_true = window[:, seq_len_in:]                            # (B, future_steps, C, H, W)
+            window = dense_block[:, local_start:local_start + W_len]   
+            x_in = window[:, :seq_len_in]                              
+            y_true = window[:, seq_len_in:]                            
 
             if is_train:
                 optimizer.zero_grad()
                 outputs, (h, c) = convlstm(x_in)
-
-                # --- Autoregressive prediction for 'future_steps' ---
                 preds = []
                 h_t, c_t = h, c
                 for _ in range(future_steps):
-                    y_t = decoder(h_t)  # (B, C_out=4, H, W)
+                    y_t = decoder(h_t) 
                     preds.append(y_t)
                     h_t, c_t = convlstm.cell(y_t, (h_t, c_t))
 
-                preds = torch.stack(preds, dim=1)   # (B, future_steps, C, H, W)
+                preds = torch.stack(preds, dim=1)  
                 loss = criterion(preds, y_true)
                 loss.backward()
                 optimizer.step()
@@ -587,7 +470,6 @@ def process_csv_with_blocks(
 
         global_last_processed_start = block_start_idx + local_max_start
 
-        # Free this block before moving on.
         del dense_block
         if device == "cuda":
             torch.cuda.empty_cache()
@@ -595,80 +477,11 @@ def process_csv_with_blocks(
     if n_windows == 0:
         return None
 
-    # Average loss per window across entire CSV.
     return total_loss / n_windows
 
 
 # =========================================================
-# 4. Train / Validate wrappers for a single CSV
-# =========================================================
-
-def train_single_csv_full(
-    csv_path,
-    convlstm,
-    decoder,
-    criterion,
-    optimizer,
-    epoch,
-    seq_len_in,
-    future_steps,
-    t_full,
-    x_unique,
-    y_unique,
-    timestep_capacity,
-    rows_per_chunk_csv,
-):
-    return process_csv_with_blocks(
-        csv_path,
-        convlstm,
-        decoder,
-        criterion,
-        seq_len_in,
-        future_steps,
-        t_full,
-        x_unique,
-        y_unique,
-        timestep_capacity,
-        rows_per_chunk_csv,
-        is_train=True,
-        optimizer=optimizer,
-        epoch=epoch,
-    )
-
-
-def validate_single_csv_full(
-    csv_path,
-    convlstm,
-    decoder,
-    criterion,
-    seq_len_in,
-    future_steps,
-    t_full,
-    x_unique,
-    y_unique,
-    timestep_capacity,
-    rows_per_chunk_csv,
-):
-    return process_csv_with_blocks(
-        csv_path,
-        convlstm,
-        decoder,
-        criterion,
-        seq_len_in,
-        future_steps,
-        t_full,
-        x_unique,
-        y_unique,
-        timestep_capacity,
-        rows_per_chunk_csv,
-        is_train=False,
-        optimizer=None,
-        epoch=0,
-    )
-
-
-# =========================================================
-# 5. TRAIN LOOP (single train CSV, single val CSV)
+# 5. TRAIN LOOP
 # =========================================================
 
 def train(
@@ -685,56 +498,21 @@ def train(
     timestep_capacity,
     rows_per_chunk_csv,
 ):
-    device = next(convlstm.parameters()).device
-
-    # if load_checkpoint and os.path.exists(checkpoint_path):
-    #     ckpt = torch.load(checkpoint_path, map_location=device)
-    #     convlstm.load_state_dict(ckpt["convlstm_state_dict"])
-    #     decoder.load_state_dict(ckpt["decoder_state_dict"])
-    #     print(f"[CKPT] Loaded checkpoint {checkpoint_path}")
-    # else:
-    print("[CKPT] Starting from scratch.")
-
     criterion = nn.MSELoss()
     optimizer = optim.Adam(
         list(convlstm.parameters()) + list(decoder.parameters()),
         lr=1e-3,
     )
 
-    # model_config = {
-    #     "convlstm": {
-    #         "class": convlstm.__class__.__name__,
-    #         "input_dim": 4,
-    #         "hidden_dim": 4,
-    #         "kernel_size": 3,
-    #     },
-    #     "decoder": {
-    #         "class": decoder.__class__.__name__,
-    #         "in": 4,
-    #         "out": 4,
-    #         "kernel": 1,
-    #     },
-    #     "device": str(device),
-    # }
-    #
-    # optimizer_config = {
-    #     "type": "Adam",
-    #     "lr": optimizer.param_groups[0]["lr"],
-    #     "betas": list(optimizer.param_groups[0].get("betas", (0.9, 0.999))),
-    #     "weight_decay": optimizer.param_groups[0].get("weight_decay", 0.0),
-    # }
-
     for epoch in range(num_epochs):
         convlstm.train()
         decoder.train()
 
-        train_loss = train_single_csv_full(
+        train_loss = process_csv_with_blocks(
             train_csv_path,
             convlstm,
             decoder,
             criterion,
-            optimizer,
-            epoch,
             seq_len_in,
             future_steps,
             t_full,
@@ -742,6 +520,9 @@ def train(
             y_unique,
             timestep_capacity,
             rows_per_chunk_csv,
+            is_train=True,
+            optimizer=optimizer,
+            epoch=epoch,
         )
         if train_loss is None:
             train_loss = float("nan")
@@ -750,7 +531,7 @@ def train(
         decoder.eval()
 
         with torch.no_grad():
-            val_loss = validate_single_csv_full(
+            val_loss = process_csv_with_blocks(
                 val_csv_path,
                 convlstm,
                 decoder,
@@ -762,6 +543,9 @@ def train(
                 y_unique,
                 timestep_capacity,
                 rows_per_chunk_csv,
+                is_train=False,
+                optimizer=None,
+                epoch=0,
             )
         if val_loss is None:
             val_loss = float("nan")
@@ -780,52 +564,31 @@ def train(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--train-csv",
-        required=True,
-        help="Path to single CSV used for training.",
-    )
-    parser.add_argument(
-        "--val-csv",
-        required=True,
-        help="Path to single CSV used for validation.",
-    )
+    parser.add_argument("--train-csv", required=True)
+    parser.add_argument("--val-csv", required=True)
     parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--future-steps", type=int, default=3)
     parser.add_argument("--seq-len-in", type=int, default=9)
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        default="checkpoints/checkpoint.pth",
-    )
-    # parser.add_argument("--load-checkpoint", action="store_true")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints/checkpoint.pth")
+    parser.add_argument("--max-ram-bytes", type=int, default=None)
+    parser.add_argument("--max-vram-bytes", type=int, default=None)
+    
+    # NEW ARGUMENTS
+    parser.add_argument("--time-start", type=int, default=None, help="Start timestep index")
+    parser.add_argument("--time-end", type=int, default=None, help="End timestep index")
+    parser.add_argument("--log-file", type=str, default="training_log.json", help="Path to save experiment metrics")
 
-    # Memory-limit arguments (in bytes)
-    parser.add_argument(
-        "--max-ram-bytes",
-        type=int,
-        default=None,
-        help=(
-            "Maximum bytes of combined sparse+dense data to assume "
-            "can reside in main memory at once."
-        ),
-    )
-    parser.add_argument(
-        "--max-vram-bytes",
-        type=int,
-        default=None,
-        help=(
-            "Maximum bytes of dense tensor data to assume can reside "
-            "on GPU at once."
-        ),
-    )
-
-    start_time = time.time()
+    start_time = time.time()  # <--- Start Timer
     args = parser.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Analyze training CSV + memory limits, adjust window lengths, and
-    # determine global timeline and grid.
+    # Create Filter Tuple
+    if args.time_start is not None and args.time_end is not None:
+        time_filter_indices = (args.time_start, args.time_end)
+    else:
+        time_filter_indices = None
+
+    # Analyze CSV with Filter
     (
         t_full,
         x_unique,
@@ -840,10 +603,10 @@ if __name__ == "__main__":
         args.future_steps,
         max_ram_bytes=args.max_ram_bytes,
         max_vram_bytes=args.max_vram_bytes,
+        time_filter_indices=time_filter_indices # <--- Pass Filter
     )
 
     convlstm = ConvLSTM2D(input_dim=4, hidden_dim=4, kernel_size=3).to(device)
-    # 2D decoder because ConvLSTM2D hidden state is (B, C, H, W)
     decoder = nn.Conv2d(4, 4, kernel_size=1).to(device)
 
     train_loss, val_loss = train(
@@ -861,16 +624,32 @@ if __name__ == "__main__":
         rows_per_chunk_csv=rows_per_chunk_csv,
     )
 
-    torch.save(
-        {
-            "convlstm_state_dict": convlstm.state_dict(),
-            "decoder_state_dict": decoder.state_dict(),
-        },
-        args.checkpoint,
-    )
+    if args.checkpoint:
+        torch.save(
+            {
+                "convlstm_state_dict": convlstm.state_dict(),
+                "decoder_state_dict": decoder.state_dict(),
+            },
+            args.checkpoint,
+        )
+        print("Model saved at: " + args.checkpoint)
 
     total_time = time.time() - start_time
-    print("Model saved at: " + args.checkpoint)
     print(f"Total runtime: {total_time:.2f} seconds")
-    print(f"Training Loss: {train_loss:.6f}")
-    print(f"Validation Loss: {val_loss:.6f}")
+
+    # === NEW: LOCAL JSON LOGGING (Replaces DB Logging) ===
+    results = {
+        "train_csv": args.train_csv,
+        "epochs": args.epochs,
+        "runtime_seconds": total_time,
+        "train_loss": train_loss,
+        "val_loss": val_loss,
+        "max_ram_bytes": args.max_ram_bytes,
+        "max_vram_bytes": args.max_vram_bytes,
+        "time_start": args.time_start,
+        "time_end": args.time_end
+    }
+    
+    with open(args.log_file, "w") as f:
+        json.dump(results, f, indent=4)
+    print(f"Experiment metrics saved to {args.log_file}")

@@ -22,7 +22,6 @@ def load_sparse_csv_to_dense_2d(
     csv_path,
     T=None, X=None, Y=None, Z=None,   # Z kept for API compatibility, ignored
     device="cpu",
-    time_filter_indices=None  # <--- NEW ARGUMENT
 ):
     """
     Load a sparse CSV (time, x, y, 4 channels) and produce a dense tensor:
@@ -60,33 +59,6 @@ def load_sparse_csv_to_dense_2d(
     t_min, t_max = t_raw.min(), t_raw.max()
     # Full timeline with hourly frequency
     t_full = pd.date_range(start=t_min, end=t_max, freq="h")
-
-    # === NEW FILTERING LOGIC START ===
-    if time_filter_indices is not None:
-        start_idx, end_idx = time_filter_indices
-        # Clamp indices to ensure they are valid
-        start_idx = max(0, start_idx)
-        end_idx = min(len(t_full), end_idx)
-        
-        # 1. Slice the global timeline to the requested window
-        t_full = t_full[start_idx:end_idx]
-        
-        if len(t_full) == 0:
-            raise ValueError(f"Time filter {time_filter_indices} resulted in 0 timesteps.")
-
-        # 2. Filter raw CSV rows to only keep those in the new window
-        valid_min = t_full[0]
-        valid_max = t_full[-1]
-        mask = (t_raw >= valid_min) & (t_raw <= valid_max)
-        
-        t_raw = t_raw[mask]
-        x_raw = x_raw[mask]
-        y_raw = y_raw[mask]
-        feats = feats[mask]
-        
-        print(f"[FILTER] Keeping timesteps {start_idx}-{end_idx} ({len(t_full)} total). CSV rows: {len(t_raw)}")
-    # === NEW FILTERING LOGIC END ===
-
     t_full_values = t_full.values
     nT_full = len(t_full_values)
 
@@ -269,7 +241,6 @@ def train_single_csv(
     layer_buffer,
     future_steps=3,
     T=None, X=None, Y=None, Z=None,
-    time_filter_indices=None,  # <--- NEW ARGUMENT
 ):
     """
     Trains on a single CSV and APPENDS layer_computation rows to `layer_buffer`.
@@ -277,10 +248,7 @@ def train_single_csv(
     """
     device = next(convlstm.parameters()).device
 
-    dense, _, _, _, _ = load_sparse_csv_to_dense_2d(
-        csv_path, T, X, Y, Z, device=device,
-        time_filter_indices=time_filter_indices  # <--- PASS IT DOWN
-    )
+    dense, _, _, _, _ = load_sparse_csv_to_dense_2d(csv_path, T, X, Y, Z, device=device)
     # dense: (B, T_total, C, H, W)
     B, T_total, C, H, W = dense.shape
 
@@ -339,14 +307,10 @@ def validate_single_csv(
     criterion,
     future_steps=3,
     T=None, X=None, Y=None, Z=None,
-    time_filter_indices=None,
 ):
     device = next(convlstm.parameters()).device
 
-    dense, _, _, _, _ = load_sparse_csv_to_dense_2d(
-        csv_path, T, X, Y, Z, device=device,
-        time_filter_indices=time_filter_indices
-    )
+    dense, _, _, _, _ = load_sparse_csv_to_dense_2d(csv_path, T, X, Y, Z, device=device)
     B, T_total, C, H, W = dense.shape
 
     seq_len_in = SEQ_LEN_IN
@@ -382,8 +346,6 @@ def train(
     future_steps,
     checkpoint_path,
     load_checkpoint=False,
-    time_start=None, # <--- NEW
-    time_end=None    # <--- NEW
 ):
     device = next(convlstm.parameters()).device
 
@@ -403,12 +365,6 @@ def train(
         list(convlstm.parameters()) + list(decoder.parameters()),
         lr=1e-3,
     )
-
-    # Create the filter tuple once
-    if time_start is not None and time_end is not None:
-        filter_idx = (time_start, time_end)
-    else:
-        filter_idx = None
 
     # Determine CSVs
     if os.path.isdir(data_path):
@@ -458,7 +414,7 @@ def train(
         future_steps=future_steps,
         model_config=model_config,
         optimizer_config=optimizer_config,
-        notes=f"load_checkpoint={load_checkpoint}, filter={filter_idx}",
+        notes=f"load_checkpoint={load_checkpoint}",
     )
 
     # -------------------------------
@@ -479,8 +435,7 @@ def train(
                 criterion, optimizer,
                 epoch, run_id,
                 layer_buffer=layer_buffer,
-                future_steps=future_steps,
-                time_filter_indices=filter_idx  # <--- PASS THE TUPLE
+                future_steps=future_steps
             )
             if loss is not None:
                 train_losses.append(loss)
@@ -494,10 +449,7 @@ def train(
 
         with torch.no_grad():
             for csv in val_files:
-                loss = validate_single_csv(
-                    csv, convlstm, decoder, criterion, future_steps,
-                    time_filter_indices=filter_idx # also filter validation
-                )
+                loss = validate_single_csv(csv, convlstm, decoder, criterion, future_steps)
                 if loss is not None:
                     val_losses.append(loss)
 
@@ -553,9 +505,6 @@ if __name__ == "__main__":
     parser.add_argument("--future-steps", type=int, default=3)
     parser.add_argument("--checkpoint", type=str, default="checkpoint.pth")
     parser.add_argument("--load-checkpoint", action="store_true")
-    # NEW ARGUMENTS
-    parser.add_argument("--time-start", type=int, default=None, help="Start timestep index")
-    parser.add_argument("--time-end", type=int, default=None, help="End timestep index")
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -572,6 +521,4 @@ if __name__ == "__main__":
         future_steps=args.future_steps,
         checkpoint_path=args.checkpoint,
         load_checkpoint=args.load_checkpoint,
-        time_start=args.time_start,  # <--- NEW
-        time_end=args.time_end       # <--- NEW
     )
