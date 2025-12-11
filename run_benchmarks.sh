@@ -127,6 +127,9 @@ CONFIGS=(
   "5|seq9_future3_vram512M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 536870912"
 #   "14|seq100_future10_vram512M|--seq-len-in 100 --future-steps 10 --max-vram-bytes 536870912"
 #   "15|seq100_future100_vram512M|--seq-len-in 100 --future-steps 100 --max-vram-bytes 536870912"
+  "6|seq9_future3_vram256M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 268435456"
+  "7|seq9_future3_vram256M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 268435456"
+
 )
 
 # ---------------------------------------------------------
