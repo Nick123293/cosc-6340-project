@@ -163,10 +163,10 @@ def compute_T_window(
 
 
 # ---------------------------------------------------------
-# 2. DATABASE
+# 2. DATABASE (PARTITIONED)
 # ---------------------------------------------------------
 
-def init_db(reset_tables=True):
+def init_db(reset_tables=True, seq_len=9):
     try:
         conn = psycopg2.connect(
             dbname="cosc6340_project_db",
@@ -179,9 +179,10 @@ def init_db(reset_tables=True):
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
         if reset_tables:
+            # Drop parent table CASCADE to remove all partitions
+            cursor.execute("DROP TABLE IF EXISTS layer_computations CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS epoch_metrics;")
-            cursor.execute("DROP TABLE IF EXISTS layer_computations;")
-            cursor.execute("DROP TABLE IF EXISTS training_runs;")
+            cursor.execute("DROP TABLE IF EXISTS training_runs CASCADE;")
             conn.commit()
 
         cursor.execute("""
@@ -211,20 +212,33 @@ def init_db(reset_tables=True):
             );
         """)
 
+        # ---- Partitioned Table for Computations ----
+        # 1. Create the parent partitioned table
+        # We remove the PRIMARY KEY on 'id' because partitioned tables cannot have
+        # a unique key that doesn't include the partition key (time_step).
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS layer_computations (
-                id SERIAL PRIMARY KEY,
+                id SERIAL,
                 run_id INT NOT NULL REFERENCES training_runs(id) ON DELETE CASCADE,
                 epoch INT NOT NULL,
                 sample_path TEXT,
-                time_step INT,
+                time_step INT NOT NULL,
                 embedding vector(4),
                 notation JSONB
-            );
+            ) PARTITION BY LIST (time_step);
         """)
 
+        # 2. Create partitions for each time step in the sequence
+        for t in range(seq_len):
+            table_name = f"layer_computations_t{t}"
+            cursor.execute(f"""
+                CREATE TABLE IF NOT EXISTS {table_name}
+                PARTITION OF layer_computations
+                FOR VALUES IN ({t});
+            """)
+
         conn.commit()
-        print("[DB] Ready.")
+        print(f"[DB] Ready. Created partitions for {seq_len} time steps.")
         return conn, cursor
 
     except Exception as e:
@@ -274,6 +288,9 @@ def flush_layer_computations(conn, cursor, layer_buffer):
     Flush buffered rows into layer_computations in one batched INSERT.
     layer_buffer is a list of tuples:
         (run_id, epoch, sample_path, time_step, embedding, notation)
+    
+    The database will automatically route these rows to the correct 
+    partition (e.g., layer_computations_t0) based on time_step.
     """
     if not layer_buffer:
         return
@@ -517,7 +534,8 @@ def train(
     else:
         print("[CKPT] Starting from scratch.")
 
-    conn, cursor = init_db(reset_tables=not load_checkpoint)
+    # CHANGE: We pass SEQ_LEN_IN here so init_db knows how many partitions to create
+    conn, cursor = init_db(reset_tables=not load_checkpoint, seq_len=SEQ_LEN_IN)
 
     criterion = nn.MSELoss()
     optimizer = optim.Adam(
@@ -600,6 +618,7 @@ def train(
                 train_losses.append(loss)
 
         # Flush all buffered layer computations for this epoch in one batch
+        # DB Partitioning will handle routing rows to layer_computations_t0, etc.
         flush_layer_computations(conn, cursor, layer_rows_buffer)
 
         train_loss = float(np.mean(train_losses)) if train_losses else float("nan")
