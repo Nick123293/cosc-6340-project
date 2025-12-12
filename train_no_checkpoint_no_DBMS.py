@@ -128,8 +128,6 @@ def analyze_csv_and_memory(
 
     # Scan in moderate chunks
     scan_chunksize = 100000
-    print(f"[MEM] Scanning CSV for global structure with chunksize={scan_chunksize} rows...")
-
     for chunk in pd.read_csv(csv_path, chunksize=scan_chunksize, usecols=[0, 1, 2]):
         if chunk.empty:
             continue
