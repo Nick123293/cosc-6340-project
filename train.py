@@ -1,8 +1,9 @@
 import argparse
 import os
+import time
 import json
-import pandas as pd
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -12,105 +13,124 @@ from psycopg2.extras import execute_values
 from ConvLSTM import ConvLSTM2D
 
 
-SEQ_LEN_IN=9
+# =========================================================
+# GLOBAL DB CONFIG
+# =========================================================
+SEQ_LEN_IN = 9
 
-# ---------------------------------------------------------
-# 0. CSV → Dense 2D Tensor
-# ---------------------------------------------------------
 
-def load_sparse_csv_to_dense_2d(
+# =========================================================
+# 0. Row-size + memory capacity estimation (From No-DBMS script)
+# =========================================================
+
+def estimate_row_sizes(csv_path, max_sample_rows=1000):
+    sizes = []
+    with open(csv_path, "rb") as f:
+        _ = f.readline()
+        for i, line in enumerate(f):
+            if i >= max_sample_rows:
+                break
+            sizes.append(len(line))
+
+    if not sizes:
+        raise ValueError(f"[MEM] No data rows found when sampling CSV: {csv_path}")
+
+    n = len(sizes)
+    avg_bytes = float(sum(sizes)) / n
+    return avg_bytes
+
+def adjust_window_lengths(seq_len_in_arg, future_steps_arg, timestep_capacity):
+    if timestep_capacity is None:
+        return seq_len_in_arg, future_steps_arg
+
+    min_total = 3
+    max_total = min(timestep_capacity, seq_len_in_arg + future_steps_arg)
+    if max_total < min_total:
+        max_total = min_total
+
+    new_future = max(1, min(future_steps_arg, max_total - 1))
+    new_seq = max(1, max_total - new_future)
+    return new_seq, new_future
+
+def analyze_csv_and_memory(
     csv_path,
-    T=None, X=None, Y=None, Z=None,   # Z kept for API compatibility, ignored
-    device="cpu",
+    seq_len_in_arg,
+    future_steps_arg,
+    max_ram_bytes=None,
+    max_vram_bytes=None,
+    time_filter_indices=None
 ):
-    """
-    Load a sparse CSV (time, x, y, 4 channels) and produce a dense tensor:
+    avg_bytes = estimate_row_sizes(csv_path)
 
-        dense: (B=1, T_dim, C=4, H=Y_dim, W=X_dim)
+    # Scan for structure
+    t_min, t_max = None, None
+    x_values, y_values = set(), set()
+    total_rows_scanned = 0
 
-    - Time axis:
-        * Build full hourly timeline from min(t_raw) to max(t_raw).
-        * Any missing hours are included and stay all-zero in the tensor.
-    - Spatial axes:
-        * Build full set of unique x and unique y from the file.
-        * Any missing (t, x, y) combination stays all-zero in the tensor.
-    """
+    scan_chunksize = 100000
+    print(f"[MEM] Scanning CSV for global structure...")
 
-    df = pd.read_csv(csv_path)
+    for chunk in pd.read_csv(csv_path, chunksize=scan_chunksize, usecols=[0, 1, 2]):
+        if chunk.empty: continue
+        total_rows_scanned += len(chunk)
+        t_col = pd.to_datetime(chunk.iloc[:, 0])
+        
+        c_min, c_max = t_col.min(), t_col.max()
+        t_min = c_min if t_min is None else min(t_min, c_min)
+        t_max = c_max if t_max is None else max(t_max, c_max)
 
-    # ---- 0. Basic sanity check ----
-    # We expect at least: time, x, y, and 4 channels = 7 columns minimum
-    if df.shape[1] < 5:
-        raise ValueError(
-            "CSV must have at least 5 columns: time, x, y, and feature columns."
-        )
+        x_values.update(chunk.iloc[:, 1].astype(float).unique())
+        y_values.update(chunk.iloc[:, 2].astype(float).unique())
 
-    # ---- 1. Parse columns ----
-    # Assumed layout: [time, x, y, ..., last 4 cols = channels]
-    t_raw = pd.to_datetime(df.iloc[:, 0])          # timestamps
-    x_raw = df.iloc[:, 1].astype(float)
-    y_raw = df.iloc[:, 2].astype(float)
-
-    # Take the last 4 columns as the 4 channels (more robust than fixed indices)
-    feats = df.iloc[:, -4:].astype(float).fillna(0.0)
-    C = feats.shape[1]  # should be 4, but we infer it
-
-    # ---- 2. Build full hourly timeline (fills missing timesteps) ----
-    t_min, t_max = t_raw.min(), t_raw.max()
-    # Full timeline with hourly frequency
+    # Build Timeline
     t_full = pd.date_range(start=t_min, end=t_max, freq="h")
-    t_full_values = t_full.values
-    nT_full = len(t_full_values)
 
-    # If T is provided and larger than nT_full, pad with extra time steps at the end
-    T_dim = T if (T is not None and T >= nT_full) else nT_full
+    # Time Filter
+    if time_filter_indices is not None:
+        start_idx, end_idx = time_filter_indices
+        start_idx = max(0, start_idx)
+        end_idx = min(len(t_full), end_idx)
+        t_full = t_full[start_idx:end_idx]
+        if len(t_full) == 0:
+            raise ValueError("Time filter resulted in 0 timesteps.")
+        print(f"[FILTER] Restricting to timesteps {start_idx}-{end_idx} ({len(t_full)} hours).")
 
-    # Map each timestamp in the CSV to an index in [0, nT_full)
-    time_to_index = {ts: i for i, ts in enumerate(t_full_values)}
-    t_idx_np = np.fromiter(
-        (time_to_index[ts] for ts in t_raw.values),
-        dtype=np.int64,
-        count=len(t_raw),
-    )
+    T_total = len(t_full)
+    x_unique = np.array(sorted(x_values), dtype=float)
+    y_unique = np.array(sorted(y_values), dtype=float)
+    
+    # Memory Calc
+    H, W = len(y_unique), len(x_unique)
+    bytes_per_timestep_dense = float(1 * 4 * H * W * 4) # B=1, C=4, Float32
 
-    # ---- 3. Spatial indices (fills missing x,y grid positions) ----
-    # Build the full set of unique x and y values seen in the entire file
-    x_unique, x_inv = np.unique(x_raw.values, return_inverse=True)
-    y_unique, y_inv = np.unique(y_raw.values, return_inverse=True)
+    timestep_limits = []
+    if max_ram_bytes:
+        # Simple heuristic: RAM must hold the sparse CSV chunk + the dense tensor
+        # We approximate sparse csv size per timestep using avg_bytes
+        rows_per_ts = (total_rows_scanned / ((t_max - t_min).total_seconds()/3600)) if t_max > t_min else 1
+        bytes_sparse = rows_per_ts * avg_bytes
+        limit = int(max_ram_bytes // (bytes_per_timestep_dense + bytes_sparse))
+        timestep_limits.append(max(3, limit))
 
-    nX, nY = len(x_unique), len(y_unique)
+    if max_vram_bytes:
+        limit = int(max_vram_bytes // bytes_per_timestep_dense)
+        timestep_limits.append(max(3, limit))
 
-    # Allow optional overrides for X_dim, Y_dim if you ever use them
-    X_dim = X if (X is not None and X >= nX) else nX
-    Y_dim = Y if (Y is not None and Y >= nY) else nY
+    timestep_capacity = min(timestep_limits) if timestep_limits else None
+    if timestep_capacity:
+        timestep_capacity = min(timestep_capacity, T_total)
 
-    B = 1  # batch size
+    new_seq, new_fut = adjust_window_lengths(seq_len_in_arg, future_steps_arg, timestep_capacity)
+    rows_per_chunk = 100000
 
-    # ---- 4. Allocate dense tensor filled with zeros ----
-    # Shape: (B, T, C, H, W) = (1, T_dim, C, Y_dim, X_dim)
-    dense = torch.zeros((B, T_dim, C, Y_dim, X_dim), device=device, dtype=torch.float32)
-
-    # ---- 5. Scatter the observed values into the dense grid ----
-    t_idx = torch.tensor(t_idx_np, dtype=torch.long, device=device)
-    x_idx = torch.tensor(x_inv, dtype=torch.long, device=device)
-    y_idx = torch.tensor(y_inv, dtype=torch.long, device=device)
-
-    feats_t = torch.tensor(feats.values, dtype=torch.float32, device=device)
-
-    # Fill only the positions present in the CSV; everything else stays zero
-    dense[0, t_idx, :, y_idx, x_idx] = feats_t
-
-    # We return a dummy z_unique to keep the same return signature shape-wise.
-    z_unique = np.array([0], dtype=int)
-
-    return dense, t_full, x_unique, y_unique, z_unique
+    return t_full, x_unique, y_unique, timestep_capacity, rows_per_chunk, new_seq, new_fut
 
 
-# ---------------------------------------------------------
-# 1. DATABASE
-# ---------------------------------------------------------
+# =========================================================
+# 1. DATABASE & COMPRESSION (From Memory-Aware Script)
+# =========================================================
 
-def init_db(reset_tables=True):
+def init_db(reset_tables=True, seq_len=9):
     try:
         conn = psycopg2.connect(
             dbname="cosc6340_project_db",
@@ -122,25 +142,31 @@ def init_db(reset_tables=True):
         cursor = conn.cursor()
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
-        # ALWAYS drop & recreate for now to fix schema mismatch
         if reset_tables:
+            cursor.execute("DROP TABLE IF EXISTS layer_computations CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS epoch_metrics;")
-            cursor.execute("DROP TABLE IF EXISTS layer_computations;")
-            cursor.execute("DROP TABLE IF EXISTS training_runs;")
+            cursor.execute("DROP TABLE IF EXISTS training_runs CASCADE;")
             conn.commit()
 
+        # Metadata table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS training_runs (
                 id SERIAL PRIMARY KEY,
                 started_at TIMESTAMPTZ DEFAULT NOW(),
                 data_path TEXT NOT NULL,
                 future_steps INT NOT NULL,
+                ram_limit_bytes BIGINT,
+                time_start INT,
+                time_end INT,
+                total_epochs INT,
+                runtime_seconds DOUBLE PRECISION,
                 model_config JSONB NOT NULL,
                 optimizer_config JSONB NOT NULL,
                 notes TEXT
             );
         """)
 
+        # Metrics table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS epoch_metrics (
                 id SERIAL PRIMARY KEY,
@@ -148,377 +174,291 @@ def init_db(reset_tables=True):
                 epoch INT NOT NULL,
                 train_loss DOUBLE PRECISION,
                 val_loss DOUBLE PRECISION,
-                n_train_samples INT,
-                n_val_samples INT,
                 learning_rate DOUBLE PRECISION,
-                checkpoint_path TEXT,
-                created_at TIMESTAMPTZ DEFAULT NOW()
+                checkpoint_path TEXT
             );
         """)
 
+        # Computations (Partitioned)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS layer_computations (
-                id SERIAL PRIMARY KEY,
+                id SERIAL,
                 run_id INT NOT NULL REFERENCES training_runs(id) ON DELETE CASCADE,
                 epoch INT NOT NULL,
                 sample_path TEXT,
-                time_step INT,
+                time_step INT NOT NULL,
                 embedding vector(4),
                 notation JSONB
-            );
+            ) PARTITION BY LIST (time_step);
         """)
 
-        conn.commit()
-        print("[DB] Ready.")
-        return conn, cursor
+        for t in range(seq_len):
+            cursor.execute(f"CREATE TABLE IF NOT EXISTS layer_computations_t{t} PARTITION OF layer_computations FOR VALUES IN ({t});")
 
+        conn.commit()
+        print(f"[DB] Ready. Partitions created for seq_len={seq_len}.")
+        return conn, cursor
     except Exception as e:
         print("[DB ERROR]", e)
         return None, None
 
-
-def create_training_run(conn, cursor, data_path, future_steps, model_config, optimizer_config, notes=None):
-    cursor.execute(
-        """
-        INSERT INTO training_runs (data_path, future_steps, model_config, optimizer_config, notes)
-        VALUES (%s, %s, %s, %s, %s)
-        RETURNING id;
-        """,
-        (data_path, future_steps, json.dumps(model_config), json.dumps(optimizer_config), notes),
-    )
+def create_training_run(conn, cursor, data_path, future_steps, ram_limit, t_start, t_end, epochs, model_cfg, opt_cfg, notes):
+    cursor.execute("""
+        INSERT INTO training_runs (data_path, future_steps, ram_limit_bytes, time_start, time_end, total_epochs, model_config, optimizer_config, notes)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;
+    """, (data_path, future_steps, ram_limit, t_start, t_end, epochs, json.dumps(model_cfg), json.dumps(opt_cfg), notes))
     run_id = cursor.fetchone()[0]
     conn.commit()
-    print(f"[DB] Created training_run id={run_id}")
     return run_id
 
-
-def log_epoch_metrics(
-    conn, cursor, run_id, epoch,
-    train_loss, val_loss, n_train_samples, n_val_samples,
-    learning_rate, checkpoint_path,
-):
-    cursor.execute(
-        """
-        INSERT INTO epoch_metrics (
-            run_id, epoch, train_loss, val_loss,
-            n_train_samples, n_val_samples,
-            learning_rate, checkpoint_path, created_at
-        )
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,NOW());
-        """,
-        (
-            run_id, epoch, train_loss, val_loss,
-            n_train_samples, n_val_samples, learning_rate, checkpoint_path
-        )
-    )
+def update_run_runtime(conn, cursor, run_id, runtime):
+    cursor.execute("UPDATE training_runs SET runtime_seconds = %s WHERE id = %s;", (runtime, run_id))
     conn.commit()
 
+def log_epoch_metrics(conn, cursor, run_id, epoch, t_loss, v_loss, lr, ckpt):
+    cursor.execute("""
+        INSERT INTO epoch_metrics (run_id, epoch, train_loss, val_loss, learning_rate, checkpoint_path)
+        VALUES (%s,%s,%s,%s,%s,%s);
+    """, (run_id, epoch, t_loss, v_loss, lr, ckpt))
+    conn.commit()
 
-# ---------------------------------------------------------
-# 2. COMPRESSION (2D → vector)
-# ---------------------------------------------------------
+def flush_layer_computations(conn, cursor, buffer):
+    if not buffer: return
+    execute_values(cursor, """
+        INSERT INTO layer_computations (run_id, epoch, sample_path, time_step, embedding, notation)
+        VALUES %s
+    """, buffer)
+    conn.commit()
+    buffer.clear()
 
 def compress_2d_to_vector(tensor_5d):
-    """
-    tensor_5d: (B, T, C, H, W)
-    Returns:   (B, T, C) = spatial mean over H, W.
-    """
+    # Mean over H, W
     return torch.mean(tensor_5d, dim=[3, 4])
 
 
-# ---------------------------------------------------------
-# 3. TRAINING ON ONE CSV (NOW BUFFER-BASED)
-# ---------------------------------------------------------
+# =========================================================
+# 2. Loading Dense Blocks (From No-DBMS script)
+# =========================================================
 
-def train_single_csv(
-    csv_path,
-    convlstm,
-    decoder,
-    criterion,
-    optimizer,
-    epoch,
-    run_id,
-    layer_buffer,
-    future_steps=3,
-    T=None, X=None, Y=None, Z=None,
-):
-    """
-    Trains on a single CSV and APPENDS layer_computation rows to `layer_buffer`.
-    It does NOT touch the database directly.
-    """
-    device = next(convlstm.parameters()).device
+def load_sparse_df_to_dense_2d_fixed_grid(df, t_start, t_end, x_unique, y_unique, device="cpu"):
+    t_block = pd.date_range(start=t_start, end=t_end, freq="h")
+    T_block = len(t_block)
+    
+    time_to_idx = {ts: i for i, ts in enumerate(t_block)}
+    x_to_idx = {v: i for i, v in enumerate(x_unique)}
+    y_to_idx = {v: i for i, v in enumerate(y_unique)}
 
-    dense, _, _, _, _ = load_sparse_csv_to_dense_2d(csv_path, T, X, Y, Z, device=device)
-    # dense: (B, T_total, C, H, W)
-    B, T_total, C, H, W = dense.shape
+    dense = torch.zeros((1, T_block, 4, len(y_unique), len(x_unique)), device=device, dtype=torch.float32)
 
-    seq_len_in = SEQ_LEN_IN
-    if T_total < seq_len_in + future_steps:
-        print(f"[WARN] File {csv_path} skipped (not enough time steps).")
-        return None
+    mask = (pd.to_datetime(df.iloc[:,0]) >= t_start) & (pd.to_datetime(df.iloc[:,0]) <= t_end)
+    df_sub = df.loc[mask]
+    if df_sub.empty: return dense
 
-    x_in = dense[:, :seq_len_in]                       # (B, seq_len_in, C, H, W)
-    y_true = dense[:, seq_len_in:seq_len_in + future_steps]  # (B, future_steps, C, H, W)
+    t_vals = pd.to_datetime(df_sub.iloc[:,0])
+    x_vals = df_sub.iloc[:,1]
+    y_vals = df_sub.iloc[:,2]
+    feats = df_sub.iloc[:,-4:].fillna(0.0).values
 
-    optimizer.zero_grad()
-    outputs, (h, c) = convlstm(x_in)                  # outputs: (B, seq_len_in, hidden_dim, H, W)
+    t_indices = [time_to_idx[t] for t in t_vals]
+    x_indices = [x_to_idx[x] for x in x_vals]
+    y_indices = [y_to_idx[y] for y in y_vals]
 
-    # --- Buffer embeddings instead of writing directly to DB ---
-    if layer_buffer is not None:
-        compressed = compress_2d_to_vector(outputs).detach().cpu().numpy()  # (B, T, hidden_dim)
+    dense[0, t_indices, :, y_indices, x_indices] = torch.tensor(feats, dtype=torch.float32, device=device)
+    return dense
 
-        for t in range(seq_len_in):
-            notation_json = json.dumps({
-                "layer": "ConvLSTM2D",
-                "operation": "GlobalAvgPooling",
-                "source_op": "Conv2dGEMM",
-                "timestep": t,
-                "input_shape": [int(H), int(W)],
-                "math": {"pool": "mean(h_t)", "conv": "matmul(im2col(...))"}
-            })
-            layer_buffer.append(
-                (run_id, epoch, csv_path, t, compressed[0, t].tolist(), notation_json)
-            )
-
-    # --- Predict ---
-    preds = []
-    h_t, c_t = h, c
-    for _ in range(future_steps):
-        y_t = decoder(h_t)          # (B, C_out=4, H, W)
-        preds.append(y_t)
-        h_t, c_t = convlstm.cell(y_t, (h_t, c_t))
-
-    preds = torch.stack(preds, dim=1)   # (B, future_steps, C, H, W)
-    loss = criterion(preds, y_true)
-    loss.backward()
-    optimizer.step()
-
-    return loss.item()
+def build_dense_block(csv_path, t_start, t_end, x_unique, y_unique, device, chunksize):
+    collected = []
+    for chunk in pd.read_csv(csv_path, chunksize=chunksize):
+        t_col = pd.to_datetime(chunk.iloc[:, 0])
+        if (t_col >= t_start).any() and (t_col <= t_end).any():
+            collected.append(chunk[ (t_col >= t_start) & (t_col <= t_end) ])
+    
+    if not collected:
+        return torch.zeros((1, len(pd.date_range(t_start, t_end, freq="h")), 4, len(y_unique), len(x_unique)), device=device)
+    
+    return load_sparse_df_to_dense_2d_fixed_grid(pd.concat(collected), t_start, t_end, x_unique, y_unique, device)
 
 
-# ---------------------------------------------------------
-# 4. VALIDATION
-# ---------------------------------------------------------
+# =========================================================
+# 3. Processing with Buffering
+# =========================================================
 
-def validate_single_csv(
-    csv_path,
-    convlstm,
-    decoder,
-    criterion,
-    future_steps=3,
-    T=None, X=None, Y=None, Z=None,
+def process_csv_with_blocks(
+    csv_path, convlstm, decoder, criterion, seq_len_in, future_steps,
+    t_full, x_unique, y_unique, timestep_capacity, rows_per_chunk,
+    is_train, optimizer=None, epoch=0,
+    # DB Args
+    run_id=None, conn=None, cursor=None, layer_buffer=None
 ):
     device = next(convlstm.parameters()).device
+    T_total = len(t_full)
+    W_len = seq_len_in + future_steps
 
-    dense, _, _, _, _ = load_sparse_csv_to_dense_2d(csv_path, T, X, Y, Z, device=device)
-    B, T_total, C, H, W = dense.shape
+    if T_total < W_len: return None
 
-    seq_len_in = SEQ_LEN_IN
-    if T_total < seq_len_in + future_steps:
-        return None
+    T_block = timestep_capacity if (timestep_capacity and timestep_capacity < T_total) else T_total
+    T_block = max(T_block, W_len)
+    block_stride = max(1, T_block - W_len + 1)
 
-    x_in = dense[:, :seq_len_in]
-    y_true = dense[:, seq_len_in:seq_len_in + future_steps]
+    total_loss, n_windows = 0.0, 0
+    H, W = len(y_unique), len(x_unique)
 
-    outputs, (h, c) = convlstm(x_in)
+    for start_idx in range(0, T_total - W_len + 1, block_stride):
+        end_idx = min(start_idx + T_block, T_total)
+        dense_block = build_dense_block(
+            csv_path, t_full[start_idx], t_full[end_idx-1], x_unique, y_unique, device, rows_per_chunk
+        )
+        
+        # Slide within block
+        B_actual, T_actual, _, _, _ = dense_block.shape
+        local_max = T_actual - W_len
+        
+        for local_start in range(local_max + 1):
+            window = dense_block[:, local_start : local_start + W_len]
+            x_in = window[:, :seq_len_in]
+            y_true = window[:, seq_len_in:]
 
-    preds = []
-    h_t, c_t = h, c
-    for _ in range(future_steps):
-        y_t = decoder(h_t)
-        preds.append(y_t)
-        h_t, c_t = convlstm.cell(y_t, (h_t, c_t))
+            if is_train:
+                optimizer.zero_grad()
+                outputs, (h, c) = convlstm(x_in)
+                
+                # --- DB BUFFERING ---
+                if layer_buffer is not None:
+                    compressed = compress_2d_to_vector(outputs).detach().cpu().numpy()
+                    for t in range(seq_len_in):
+                        note = json.dumps({
+                            "layer": "ConvLSTM2D", 
+                            "op": "GlobalAvgPool",
+                            "timestep": int(t),
+                            "shape": [H, W],
+                            "math": {"pool": "mean(h_t)", "conv": "matmul(im2col)"}
+                        })
+                        layer_buffer.append((run_id, epoch, csv_path, int(t), compressed[0,t].tolist(), note))
 
-    preds = torch.stack(preds, dim=1)
-    loss = criterion(preds, y_true)
-    return loss.item()
+                preds = []
+                h_t, c_t = h, c
+                for _ in range(future_steps):
+                    y_t = decoder(h_t)
+                    preds.append(y_t)
+                    h_t, c_t = convlstm.cell(y_t, (h_t, c_t))
+                
+                loss = criterion(torch.stack(preds, dim=1), y_true)
+                loss.backward()
+                optimizer.step()
+                total_loss += loss.item()
+            else:
+                with torch.no_grad():
+                    outputs, (h, c) = convlstm(x_in)
+                    preds = []
+                    h_t, c_t = h, c
+                    for _ in range(future_steps):
+                        y_t = decoder(h_t)
+                        preds.append(y_t)
+                        h_t, c_t = convlstm.cell(y_t, (h_t, c_t))
+                    total_loss += criterion(torch.stack(preds, dim=1), y_true).item()
+            
+            n_windows += 1
+
+        del dense_block
+        
+        # Flush periodically (per block) to avoid huge RAM usage
+        if layer_buffer and len(layer_buffer) > 1000:
+             flush_layer_computations(conn, cursor, layer_buffer)
+
+    return (total_loss / n_windows) if n_windows > 0 else None
 
 
-# ---------------------------------------------------------
-# 5. TRAIN LOOP (BULK INSERT PER EPOCH)
-# ---------------------------------------------------------
+# =========================================================
+# 4. MAIN TRAIN LOOP
+# =========================================================
 
-def train(
-    data_path,
-    convlstm,
-    decoder,
-    num_epochs,
-    future_steps,
-    checkpoint_path,
-    load_checkpoint=False,
-):
-    device = next(convlstm.parameters()).device
+def train(args):
+    start_time = time.time()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Load checkpoint if necessary
-    if load_checkpoint and os.path.exists(checkpoint_path):
-        ckpt = torch.load(checkpoint_path, map_location=device)
-        convlstm.load_state_dict(ckpt["convlstm_state_dict"])
-        decoder.load_state_dict(ckpt["decoder_state_dict"])
-        print(f"[CKPT] Loaded checkpoint {checkpoint_path}")
-    else:
-        print("[CKPT] Starting from scratch.")
-
-    conn, cursor = init_db(reset_tables=not load_checkpoint)
-
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(
-        list(convlstm.parameters()) + list(decoder.parameters()),
-        lr=1e-3,
+    # Analyze Data
+    filter_idx = (args.time_start, args.time_end) if args.time_start is not None else None
+    t_full, x_u, y_u, t_cap, rows_chunk, seq_len, future = analyze_csv_and_memory(
+        args.train_csv, args.seq_len_in, args.future_steps, args.max_ram_bytes, args.max_vram_bytes, filter_idx
     )
 
-    # Determine CSVs
-    if os.path.isdir(data_path):
-        all_csvs = sorted(
-            os.path.join(data_path, f)
-            for f in os.listdir(data_path)
-            if f.endswith(".csv")
-        )
-    else:
-        all_csvs = [data_path]
+    # Init DB
+    conn, cursor = init_db(reset_tables=not args.load_checkpoint, seq_len=seq_len)
+    
+    # Init Model
+    model = ConvLSTM2D(input_dim=4, hidden_dim=4, kernel_size=3).to(device)
+    decoder = nn.Conv2d(4, 4, kernel_size=1).to(device)
+    optimizer = optim.Adam(list(model.parameters()) + list(decoder.parameters()), lr=1e-3)
 
-    n_total = len(all_csvs)
-    n_train = int(0.8 * n_total)
-    train_files = all_csvs[:n_train]
-    val_files = all_csvs[n_train:]
-    n_val = len(val_files)
+    if args.load_checkpoint and os.path.exists(args.checkpoint):
+        ckpt = torch.load(args.checkpoint, map_location=device)
+        model.load_state_dict(ckpt["convlstm"])
+        decoder.load_state_dict(ckpt["decoder"])
+        print("Loaded Checkpoint.")
 
-    print(f"[DATA] {n_total} samples → {n_train} train + {n_val} val")
-
-    # Register training run in DB
-    model_config = {
-        "convlstm": {
-            "class": convlstm.__class__.__name__,
-            "input_dim": 4,
-            "hidden_dim": 4,
-            "kernel_size": 3,
-        },
-        "decoder": {
-            "class": decoder.__class__.__name__,
-            "in": 4,
-            "out": 4,
-            "kernel": 1,
-        },
-        "device": str(device),
-    }
-
-    optimizer_config = {
-        "type": "Adam",
-        "lr": optimizer.param_groups[0]["lr"],
-        "betas": list(optimizer.param_groups[0].get("betas", (0.9, 0.999))),
-        "weight_decay": optimizer.param_groups[0].get("weight_decay", 0.0),
-    }
-
+    # Log Run
     run_id = create_training_run(
-        conn, cursor,
-        data_path=data_path,
-        future_steps=future_steps,
-        model_config=model_config,
-        optimizer_config=optimizer_config,
-        notes=f"load_checkpoint={load_checkpoint}",
+        conn, cursor, args.train_csv, future, args.max_ram_bytes, 
+        args.time_start, args.time_end, args.epochs,
+        {"model": "ConvLSTM"}, {"optim": "Adam"}, "Sparse Disk + PgVector"
     )
 
-    # -------------------------------
-    # Main Loop
-    # -------------------------------
-    for epoch in range(num_epochs):
-        convlstm.train()
-        decoder.train()
-        train_losses = []
-
-        # fresh buffer for this epoch
-        layer_buffer = []
-
-        # ---- TRAIN ----
-        for csv in train_files:
-            loss = train_single_csv(
-                csv, convlstm, decoder,
-                criterion, optimizer,
-                epoch, run_id,
-                layer_buffer=layer_buffer,
-                future_steps=future_steps
-            )
-            if loss is not None:
-                train_losses.append(loss)
-
-        train_loss = float(np.mean(train_losses)) if train_losses else float("nan")
-
-        # ---- VALIDATION ----
-        convlstm.eval()
-        decoder.eval()
-        val_losses = []
-
-        with torch.no_grad():
-            for csv in val_files:
-                loss = validate_single_csv(csv, convlstm, decoder, criterion, future_steps)
-                if loss is not None:
-                    val_losses.append(loss)
-
-        val_loss = float(np.mean(val_losses)) if val_losses else float("nan")
-
-        print(f"[EPOCH {epoch+1}/{num_epochs}] train={train_loss:.6f}  val={val_loss:.6f}")
-
-        # ---- Save checkpoint ----
-        if checkpoint_path:
-            torch.save({
-                "convlstm_state_dict": convlstm.state_dict(),
-                "decoder_state_dict": decoder.state_dict(),
-            }, checkpoint_path)
-
-        # ---- Log epoch metrics (single row) ----
-        lr = optimizer.param_groups[0]["lr"]
-        log_epoch_metrics(
-            conn, cursor, run_id, epoch,
-            train_loss, val_loss,
-            len(train_files), len(val_files),
-            lr,
-            os.path.abspath(checkpoint_path) if checkpoint_path else None,
+    # Loop
+    for epoch in range(args.epochs):
+        model.train(); decoder.train()
+        buffer = []
+        
+        train_loss = process_csv_with_blocks(
+            args.train_csv, model, decoder, nn.MSELoss(), seq_len, future,
+            t_full, x_u, y_u, t_cap, rows_chunk, True, optimizer, epoch,
+            run_id, conn, cursor, buffer
+        )
+        
+        # Flush remaining
+        flush_layer_computations(conn, cursor, buffer)
+        
+        # Val
+        model.eval(); decoder.eval()
+        val_loss = process_csv_with_blocks(
+            args.val_csv, model, decoder, nn.MSELoss(), seq_len, future,
+            t_full, x_u, y_u, t_cap, rows_chunk, False
         )
 
-        # ---- Bulk-insert buffered layer_computations for this epoch ----
-        if layer_buffer:
-            execute_values(
-                cursor,
-                """
-                INSERT INTO layer_computations
-                    (run_id, epoch, sample_path, time_step, embedding, notation)
-                VALUES %s
-                """,
-                layer_buffer
-            )
-            conn.commit()
-            print(f"[DB] Inserted {len(layer_buffer)} layer_computations rows for epoch {epoch}")
+        t_loss = train_loss if train_loss else float("nan")
+        v_loss = val_loss if val_loss else float("nan")
+        print(f"[Epoch {epoch+1}] Train: {t_loss:.4f} | Val: {v_loss:.4f}")
 
-    # optional: close connection
-    if conn is not None:
-        cursor.close()
-        conn.close()
+        if args.checkpoint:
+            torch.save({"convlstm": model.state_dict(), "decoder": decoder.state_dict()}, args.checkpoint)
 
+        log_epoch_metrics(conn, cursor, run_id, epoch, t_loss, v_loss, 0.001, args.checkpoint)
 
-# ---------------------------------------------------------
-# 6. ENTRY POINT
-# ---------------------------------------------------------
+    # Finish
+    runtime = time.time() - start_time
+    update_run_runtime(conn, cursor, run_id, runtime)
+    print(f"Done. Runtime: {runtime:.2f}s")
+    
+    cursor.close()
+    conn.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", required=True)
-    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--train-csv", required=True)
+    parser.add_argument("--val-csv", required=True)
+    parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--future-steps", type=int, default=3)
-    parser.add_argument("--checkpoint", type=str, default="checkpoint.pth")
+    parser.add_argument("--seq-len-in", type=int, default=9)
+    parser.add_argument("--checkpoint", default="checkpoint.pth")
     parser.add_argument("--load-checkpoint", action="store_true")
+    
+    # Memory Limits
+    parser.add_argument("--max-ram-bytes", type=int, default=None)
+    parser.add_argument("--max-vram-bytes", type=int, default=None)
+    
+    # Filters
+    parser.add_argument("--time-start", type=int, default=None)
+    parser.add_argument("--time-end", type=int, default=None)
+
     args = parser.parse_args()
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    convlstm = ConvLSTM2D(input_dim=4, hidden_dim=4, kernel_size=3).to(device)
-    # 2D decoder because ConvLSTM2D hidden state is (B, C, H, W)
-    decoder = nn.Conv2d(4, 4, kernel_size=1).to(device)
-
-    train(
-        data_path=args.data,
-        convlstm=convlstm,
-        decoder=decoder,
-        num_epochs=args.epochs,
-        future_steps=args.future_steps,
-        checkpoint_path=args.checkpoint,
-        load_checkpoint=args.load_checkpoint,
-    )
+    train(args)
