@@ -15,7 +15,7 @@ EPOCHS=1
 LOG_DIR="results"
 # mkdir -p "$LOG_DIR"
 
-OUTFILE="${LOG_DIR}/benchmark_results.txt"
+OUTFILE="${LOG_DIR}/benchmark_results_json.txt"
 
 ###############################################
 # RAM / VRAM configs
@@ -27,8 +27,8 @@ CONFIGS_BASE=(
   "1|seq9_future3|--seq-len-in 9 --future-steps 3"
   "2|seq9_future3_ram128M|--seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728"
   "3|seq9_future3_vram128M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728"
-  "4|seq9_future3_vram32M|--seq-len-in 9 --future-steps 3 --max-ram-bytes 33554432"
-  "5|seq9_future3_vram32M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 33554432"
+#   "4|seq9_future3_ram32M|--seq-len-in 9 --future-steps 3 --max-ram-bytes 33554432"
+#   "5|seq9_future3_vram32M|--seq-len-in 9 --future-steps 3 --max-vram-bytes 33554432"
 )
 
 ###############################################
@@ -82,7 +82,7 @@ run_config() {
     local sum_train="0"
     local sum_val="0"
 
-    for run in 1 2 3; do
+    for run in 1 2; do
         echo "[CONFIG $config_id] Run $run..." | tee -a "$OUTFILE"
 
         # Per-run JSON log file
@@ -149,16 +149,16 @@ EOF
 
     # Averages
     local avg_time avg_train avg_val
-    avg_time=$(printf '%s / 3\n' "$sum_time" | bc -l)
-    avg_train=$(printf '%s / 3\n' "$sum_train" | bc -l)
-    avg_val=$(printf '%s / 3\n' "$sum_val" | bc -l)
+    avg_time=$(printf '%s / 2\n' "$sum_time" | bc -l)
+    avg_train=$(printf '%s / 2\n' "$sum_train" | bc -l)
+    avg_val=$(printf '%s / 2\n' "$sum_val" | bc -l)
 
     local avg_time_fmt avg_train_fmt avg_val_fmt
     avg_time_fmt=$(printf '%.2f' "$avg_time")
     avg_train_fmt=$(printf '%.6f' "$avg_train")
     avg_val_fmt=$(printf '%.6f' "$avg_val")
 
-    echo ">>> AVERAGES for CONFIG $config_id over 3 runs:" | tee -a "$OUTFILE"
+    echo ">>> AVERAGES for CONFIG $config_id over 2 runs:" | tee -a "$OUTFILE"
     echo "    config_label = $config_label" | tee -a "$OUTFILE"
     echo "    base_args    = $base_args" | tee -a "$OUTFILE"
     echo "    avg_time_s   = $avg_time_fmt" | tee -a "$OUTFILE"

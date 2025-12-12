@@ -5,7 +5,7 @@ set -euo pipefail
 # User configuration
 ###############################################
 
-TRAIN_SCRIPT="train.py"
+TRAIN_SCRIPT="train_no_checkpoint_no_DBMS.py"
 VAL_FILE="data/validation_data.csv"
 EPOCHS=1
 
@@ -15,7 +15,7 @@ EPOCHS=1
 LOG_DIR="results"
 # mkdir -p "$LOG_DIR"
 
-OUTFILE="${LOG_DIR}/benchmark_results_db.txt"
+OUTFILE="${LOG_DIR}/benchmark_results_no_comp.txt"
 
 ###############################################
 # RAM / VRAM configs
@@ -86,14 +86,15 @@ run_config() {
         echo "[CONFIG $config_id] Run $run..." | tee -a "$OUTFILE"
 
         # Per-run JSON log file
-        local log_file="${LOG_DIR}/${config_label}_run${run}_DB_COMP_DUMP.json"
-
+        local log_file="${LOG_DIR}/${config_label}_run${run}_json.json"
+        local computation_dump="${LOG_DIR}/${config_label}_run${run}_json_COMP_DUMP.json"
         PY_CMD=(
             python "$TRAIN_SCRIPT"
             --train-csv "$train_csv"
             --val-csv "$VAL_FILE"
             --epochs "$EPOCHS"
             --log-file "$log_file"
+            --save-computations "$computation_dump"
         )
 
         # Append base args (seq_len, future_steps, RAM/VRAM)
