@@ -377,10 +377,19 @@ def train(args):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Analyze Data
-    filter_idx = (args.time_start, args.time_end) if args.time_start is not None else None
+    if args.time_start is not None and args.time_end is not None:
+        filter_idx = (args.time_start, args.time_end)
+    else:
+        filter_idx = None
+
     t_full, x_u, y_u, t_cap, rows_chunk, seq_len, future = analyze_csv_and_memory(
-        args.train_csv, args.seq_len_in, args.future_steps, args.max_ram_bytes, args.max_vram_bytes, filter_idx
-    )
+            args.train_csv,
+            args.seq_len_in,
+            args.future_steps,
+            args.max_ram_bytes,
+            args.max_vram_bytes,
+            filter_idx
+        )
 
     # Init DB
     conn, cursor = init_db(reset_tables=not args.load_checkpoint, seq_len=seq_len)
@@ -404,6 +413,8 @@ def train(args):
     )
 
     # Loop
+    t_loss=float("nan")
+    v_loss=float("nan")
     for epoch in range(args.epochs):
         model.train(); decoder.train()
         buffer = []
@@ -440,6 +451,7 @@ def train(args):
     
     cursor.close()
     conn.close()
+    return runtime, t_loss, v_loss
 
 
 if __name__ == "__main__":
@@ -457,8 +469,26 @@ if __name__ == "__main__":
     parser.add_argument("--max-vram-bytes", type=int, default=None)
     
     # Filters
-    parser.add_argument("--time-start", type=int, default=None)
-    parser.add_argument("--time-end", type=int, default=None)
-
+    parser.add_argument("--time-start", type=int, default=None,
+                    help="Start timestep index (inclusive)")
+    parser.add_argument("--time-end", type=int, default=None,
+                    help="End timestep index (exclusive)")
+    parser.add_argument("--log-file", type=str, default="training_log.json", help="Path to save experiment metrics") #TEMPORARY
     args = parser.parse_args()
-    train(args)
+    runtime, t_loss, v_loss = train(args)
+        # === LOCAL JSON LOGGING ===
+    results = {
+        "train_csv": args.train_csv,
+        "epochs": args.epochs,
+        "runtime_seconds": runtime,
+        "train_loss": t_loss,
+        "val_loss": v_loss,
+        "max_ram_bytes": args.max_ram_bytes,
+        "max_vram_bytes": args.max_vram_bytes,
+        "time_start": args.time_start,
+        "time_end": args.time_end
+    }
+    
+    with open(args.log_file, "w") as f:
+        json.dump(results, f, indent=4)
+    print(f"Experiment metrics saved to {args.log_file}")
