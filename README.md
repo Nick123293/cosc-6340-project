@@ -29,7 +29,7 @@ The main scripts in our code are as follows
 
 
 3) train.py  
-  This script is one of our two main training scripts. It uses a DBMS connection to save computations as well as training run metrics, such as epochs, training and validation loss, and runtime.  This file requires a database connection using the `psycopg2.connect` function. This can be found on lines 180-185 and can be tuned to connect to any database you wish.
+  This script is one of our two main training scripts. It uses a DBMS connection to save computations as well as training run metrics, such as epochs, training and validation loss, and runtime.    This file requires a database connection using the `psycopg2.connect` function. This can be found on lines 180-185 and can be tuned to connect to any database you wish.
 
 It has many command line arguments which tune how it runs.  
 
@@ -73,4 +73,13 @@ There are two new command line arguments:
 
 5) `advanced_computations.py`  
 This file is used to query our database for information about training runs such as mathematical notation used and metrics such as validation loss and runtime.  
-This file requires a dbms connection using the `psycopg2.connect` function. This can be tuned in lines 11-17 to connect to a database of your liking.  
+This file requires a dbms connection using the `psycopg2.connect` function. This can be tuned in lines 11-17 to connect to a database of your liking. 
+
+6) bash scripts  
+Benchmarks are ran though the following bah scripts  
+`run_benchmarks_db.sh`  
+This file runs train.py, it takes the averages of two runs and runs multiple training configurations, which are tunable in the `CONFIG_BASE` (lines 26-30) and `RANGES` (lines 40-45). This file takes the average runtime, training loss, and validation loss over two runs and logs the results into `${LOG_DIR}/benchmark_results_db.txt`. `LOG_DIR` can be tuned in line 15. There is also a per run log file which is saved to `${LOG_DIR}/${config_label}_run${run}_DB_COMP_DUMP.json`
+`run_benchmarks_json.sh`  
+This file is exactly the same as `run_benchmarks_db.sh`, except it runs `train_no_checkpoint_no_DBMS.py`, saving the computations to a log-file. The name of this file can be tuned in line 90.  
+`run_benchmarks_no_comp.sh`   
+This file is exactly the same as `run_benchmakrs_json.sh` except it does not have the `--save-computations` argument included so computations are not saved. 
