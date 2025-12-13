@@ -175,7 +175,7 @@ def analyze_csv_and_memory(
 # 1. DATABASE & COMPRESSION (From Memory-Aware Script)
 # =========================================================
 
-def init_db(reset_tables=True, seq_len=9):
+def init_db(reset_tables=False, seq_len=9):
     try:
         conn = psycopg2.connect(
             dbname="cosc6340_project_db",
@@ -188,6 +188,7 @@ def init_db(reset_tables=True, seq_len=9):
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
         if reset_tables:
+            print("[DB] WARNING: --reset-db flag set. Dropping all tables.")
             cursor.execute("DROP TABLE IF EXISTS layer_computations CASCADE;")
             cursor.execute("DROP TABLE IF EXISTS epoch_metrics;")
             cursor.execute("DROP TABLE IF EXISTS training_runs CASCADE;")
@@ -250,7 +251,7 @@ def init_db(reset_tables=True, seq_len=9):
             )
 
         conn.commit()
-        print(f"[DB] Ready. Partitions created for seq_len={seq_len}.")
+        print(f"[DB] Ready. Tables ensured (reset={reset_tables}).")
         return conn, cursor
     except Exception as e:
         print("[DB ERROR]", e)
@@ -571,8 +572,8 @@ def train(args):
         time_filter,
     )
 
-    # Init DB
-    conn, cursor = init_db(reset_tables=not args.load_checkpoint, seq_len=seq_len)
+    # Init DB with EXPLICIT reset flag
+    conn, cursor = init_db(reset_tables=args.reset_db, seq_len=seq_len)
 
     # Init Model
     model = ConvLSTM2D(input_dim=4, hidden_dim=4, kernel_size=3).to(device)
@@ -683,12 +684,15 @@ if __name__ == "__main__":
     parser.add_argument("--seq-len-in", type=int, default=9)
     parser.add_argument("--checkpoint", default="checkpoint.pth")
     parser.add_argument("--load-checkpoint", action="store_true")
+    
+    # NEW: Explicit DB Reset Flag
+    parser.add_argument("--reset-db", action="store_true", help="WARNING: Drop all DB tables and start fresh.")
 
     # Memory Limits
     parser.add_argument("--max-ram-bytes", type=int, default=None)
     parser.add_argument("--max-vram-bytes", type=int, default=None)
 
-    # Datetime filters (NEW: strings like "YYYY-MM-DD HH:MM:SS")
+    # Datetime filters (strings like "YYYY-MM-DD HH:MM:SS")
     parser.add_argument(
         "--time-start",
         type=str,
