@@ -12,7 +12,7 @@ Required Libraries:
 5: For the database we used, the pg vector extension must be enabled. In our commands it is automaticaly enabled inside the database that you have chosen, but installation is required  
 With sudo permissions, you can simply run `sudo apt install postgresql-15-pgvector` or whatever install works with your current version of postgresql.  
 Without sudo permission, you can install manually using their github.  
-`git clone https://github.com/pgvector/pgvector.git  
+`git clone https://github.com/pgvector/pgvector.git \n 
 cd pgvector  
 make  
 sudo make install`  
