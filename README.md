@@ -78,7 +78,7 @@ This file requires a dbms connection using the `psycopg2.connect` function. This
 6) bash scripts  
 Benchmarks are ran though the following bah scripts  
 `run_benchmarks_db.sh`  
-This file runs train.py, it takes the averages of two runs and runs multiple training configurations, which are tunable in the `CONFIG_BASE` (lines 26-30) and `RANGES` (lines 40-45). This file takes the average runtime, training loss, and validation loss over two runs and logs the results into `${LOG_DIR}/benchmark_results_db.txt`. `LOG_DIR` can be tuned in line 15. There is also a per run log file which is saved to `${LOG_DIR}/${config_label}_run${run}_DB_COMP_DUMP.json`
+This file runs train.py, it takes the averages of two runs and runs multiple training configurations, which are tunable in the `CONFIG_BASE` (lines 26-30) and `RANGES` (lines 40-45). This file takes the average runtime, training loss, and validation loss over two runs and logs the results into `${LOG_DIR}/benchmark_results_db.txt`. `LOG_DIR` can be tuned in line 15. There is also a per run log file which is saved to `${LOG_DIR}/${config_label}_run${run}_DB_COMP_DUMP.json`  
 `run_benchmarks_json.sh`  
 This file is exactly the same as `run_benchmarks_db.sh`, except it runs `train_no_checkpoint_no_DBMS.py`, saving the computations to a log-file. The name of this file can be tuned in line 90.  
 `run_benchmarks_no_comp.sh`   
