@@ -1,0 +1,15 @@
+{
+    "train_csv": "data/training_data_parsed_feb_april.csv",
+    "val_csv": "data/validation_data.csv",
+    "epochs": 1,
+    "runtime_seconds": 111.07238388061523,
+    "train_loss": 0.09900033049988788,
+    "val_loss": 0.010223527438938618,
+    "max_ram_bytes": null,
+    "max_vram_bytes": 33554432,
+    "time_start": null,
+    "time_end": null,
+    "effective_seq_len_in": 9,
+    "effective_future_steps": 3,
+    "timestep_capacity": 128
+}

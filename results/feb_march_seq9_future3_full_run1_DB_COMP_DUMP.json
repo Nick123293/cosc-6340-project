@@ -1,0 +1,11 @@
+{
+    "train_csv": "data/training_data.csv",
+    "epochs": 1,
+    "runtime_seconds": 55.83979272842407,
+    "train_loss": 0.11695051132959283,
+    "val_loss": 0.001049725105985999,
+    "max_ram_bytes": null,
+    "max_vram_bytes": null,
+    "time_start": "2024-02-01 00:00:00",
+    "time_end": "2024-03-01 00:00:00"
+}

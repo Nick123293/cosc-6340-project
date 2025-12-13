@@ -1,0 +1,1128 @@
+==================================================
+CONFIG 1: feb_march_seq9_future3_parsed
+  range_tag   = feb_march
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_march.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 1] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.122498  val=0.001976
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 19.03 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 19.031923294067383
+    train     = 0.12249759321559883
+    val       = 0.001975851133465767
+
+[CONFIG 1] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.116590  val=0.002228
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 19.01 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 19.010365962982178
+    train     = 0.11658963953679748
+    val       = 0.0022276074159890413
+
+>>> AVERAGES for CONFIG 1 over 2 runs:
+    config_label = feb_march_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 19.02
+    avg_train    = 0.119544
+    avg_val      = 0.002102
+
+==================================================
+CONFIG 2: feb_march_seq9_future3_full
+  range_tag   = feb_march
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 2] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-03-01 00:00:00 (697 hours).
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.115497  val=0.001940
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 57.79 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 57.78756904602051
+    train     = 0.11549718319316213
+    val       = 0.0019400899764150381
+
+[CONFIG 2] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-03-01 00:00:00 (697 hours).
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.114121  val=0.001978
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 53.48 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 53.47669315338135
+    train     = 0.1141207350374528
+    val       = 0.0019780839793384075
+
+>>> AVERAGES for CONFIG 2 over 2 runs:
+    config_label = feb_march_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 55.63
+    avg_train    = 0.114809
+    avg_val      = 0.001959
+
+==================================================
+CONFIG 3: feb_april_seq9_future3_parsed
+  range_tag   = feb_april
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_april.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 3] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.102739  val=0.011052
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 37.05 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 37.053502321243286
+    train     = 0.10273871593555058
+    val       = 0.011052415706217289
+
+[CONFIG 3] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.100808  val=0.010208
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 36.51 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 36.51278281211853
+    train     = 0.10080815350141871
+    val       = 0.010208222083747387
+
+>>> AVERAGES for CONFIG 3 over 2 runs:
+    config_label = feb_april_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 36.78
+    avg_train    = 0.101773
+    avg_val      = 0.010630
+
+==================================================
+CONFIG 4: feb_april_seq9_future3_full
+  range_tag   = feb_april
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 4] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-04-01 00:00:00 (1441 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.102121  val=0.011544
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 67.47 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 67.47370529174805
+    train     = 0.10212078077809794
+    val       = 0.011543843895196915
+
+[CONFIG 4] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-04-01 00:00:00 (1441 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.102410  val=0.010606
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 66.46 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 66.45582914352417
+    train     = 0.10241034928956753
+    val       = 0.010605700314044952
+
+>>> AVERAGES for CONFIG 4 over 2 runs:
+    config_label = feb_april_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 66.96
+    avg_train    = 0.102266
+    avg_val      = 0.011075
+
+==================================================
+CONFIG 5: july_august_seq9_future3_parsed
+  range_tag   = july_august
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_august.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 5] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.28 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.105916  val=0.004496
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 20.93 seconds
+Experiment metrics saved to results/july_august_seq9_future3_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 20.93000602722168
+    train     = 0.10591631621117285
+    val       = 0.004496149253100157
+
+[CONFIG 5] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.28 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.095288  val=0.009509
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 20.47 seconds
+Experiment metrics saved to results/july_august_seq9_future3_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 20.46985936164856
+    train     = 0.09528796061396355
+    val       = 0.00950945820659399
+
+>>> AVERAGES for CONFIG 5 over 2 runs:
+    config_label = july_august_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 20.70
+    avg_train    = 0.100602
+    avg_val      = 0.007003
+
+==================================================
+CONFIG 6: july_august_seq9_future3_full
+  range_tag   = july_august
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 6] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-08-01 00:00:00 (745 hours).
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.103601  val=0.002634
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 58.55 seconds
+Experiment metrics saved to results/july_august_seq9_future3_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 58.54593873023987
+    train     = 0.10360130237552467
+    val       = 0.002634311793372035
+
+[CONFIG 6] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-08-01 00:00:00 (745 hours).
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.106226  val=0.001524
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 56.83 seconds
+Experiment metrics saved to results/july_august_seq9_future3_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 56.831870794296265
+    train     = 0.10622627655683689
+    val       = 0.0015239310450851917
+
+>>> AVERAGES for CONFIG 6 over 2 runs:
+    config_label = july_august_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 57.69
+    avg_train    = 0.104914
+    avg_val      = 0.002079
+
+==================================================
+CONFIG 7: july_september_seq9_future3_parsed
+  range_tag   = july_september
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_september.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 7] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.42 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 720
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.114581  val=0.012683
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 20.20 seconds
+Experiment metrics saved to results/july_september_seq9_future3_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 20.195924997329712
+    train     = 0.1145805326541321
+    val       = 0.012682677246630192
+
+[CONFIG 7] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.42 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 720
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.113863  val=0.018325
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 19.37 seconds
+Experiment metrics saved to results/july_september_seq9_future3_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 19.37287998199463
+    train     = 0.11386335853944377
+    val       = 0.018324805423617363
+
+>>> AVERAGES for CONFIG 7 over 2 runs:
+    config_label = july_september_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 19.78
+    avg_train    = 0.114222
+    avg_val      = 0.015504
+
+==================================================
+CONFIG 8: july_september_seq9_future3_full
+  range_tag   = july_september
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 8] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-09-01 00:00:00 (1489 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1489
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.071336  val=0.003350
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 72.20 seconds
+Experiment metrics saved to results/july_september_seq9_future3_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 72.19908094406128
+    train     = 0.07133577085076169
+    val       = 0.0033503416925668716
+
+[CONFIG 8] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-09-01 00:00:00 (1489 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1489
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.070968  val=0.001808
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 68.73 seconds
+Experiment metrics saved to results/july_september_seq9_future3_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 68.73004579544067
+    train     = 0.07096768596464155
+    val       = 0.0018083675531670451
+
+>>> AVERAGES for CONFIG 8 over 2 runs:
+    config_label = july_september_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 70.46
+    avg_train    = 0.071152
+    avg_val      = 0.002579
+
+==================================================
+CONFIG 9: feb_march_seq9_future3_ram128M_parsed
+  range_tag   = feb_march
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_march.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 9] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_ram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.115903  val=0.001220
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 23.41 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 23.41370415687561
+    train     = 0.11590268875882247
+    val       = 0.001220374135300517
+
+[CONFIG 9] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_ram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.113782  val=0.000944
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 23.24 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 23.241841316223145
+    train     = 0.11378152192496958
+    val       = 0.0009436846594326198
+
+>>> AVERAGES for CONFIG 9 over 2 runs:
+    config_label = feb_march_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 23.33
+    avg_train    = 0.114842
+    avg_val      = 0.001082
+
+==================================================
+CONFIG 10: feb_march_seq9_future3_ram128M_full
+  range_tag   = feb_march
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 10] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-03-01 00:00:00 (697 hours).
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_ram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.118745  val=0.002188
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 81.27 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 81.2732264995575
+    train     = 0.11874503636075613
+    val       = 0.0021877936087548733
+
+[CONFIG 10] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-03-01 00:00:00 (697 hours).
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_ram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.113488  val=0.001917
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 77.65 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 77.65076470375061
+    train     = 0.11348777988235909
+    val       = 0.0019165350822731853
+
+>>> AVERAGES for CONFIG 10 over 2 runs:
+    config_label = feb_march_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 79.46
+    avg_train    = 0.116116
+    avg_val      = 0.002052
+
+==================================================
+CONFIG 11: feb_april_seq9_future3_ram128M_parsed
+  range_tag   = feb_april
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_april.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 11] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_ram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.099747  val=0.008565
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 53.22 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 53.21739053726196
+    train     = 0.09974684451374558
+    val       = 0.008565149269998074
+
+[CONFIG 11] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_ram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.101615  val=0.009911
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 55.78 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 55.776341676712036
+    train     = 0.10161507625744998
+    val       = 0.009911143220961094
+
+>>> AVERAGES for CONFIG 11 over 2 runs:
+    config_label = feb_april_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 54.50
+    avg_train    = 0.100681
+    avg_val      = 0.009238
+
+==================================================
+CONFIG 12: feb_april_seq9_future3_ram128M_full
+  range_tag   = feb_april
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 12] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-04-01 00:00:00 (1441 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_ram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.104066  val=0.009910
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 142.14 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 142.14019775390625
+    train     = 0.10406634541866662
+    val       = 0.009909622371196747
+
+[CONFIG 12] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-04-01 00:00:00 (1441 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_ram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.101411  val=0.011116
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 128.85 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 128.84525084495544
+    train     = 0.1014109984431025
+    val       = 0.011116190813481808
+
+>>> AVERAGES for CONFIG 12 over 2 runs:
+    config_label = feb_april_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 135.49
+    avg_train    = 0.102739
+    avg_val      = 0.010513
+
+==================================================
+CONFIG 13: july_august_seq9_future3_ram128M_parsed
+  range_tag   = july_august
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_august.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 13] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.28 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_ram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.095604  val=0.005541
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 29.07 seconds
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 29.074724912643433
+    train     = 0.09560443976594576
+    val       = 0.005540655460208654
+
+[CONFIG 13] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.28 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_ram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.099575  val=0.006789
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 28.01 seconds
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 28.009422302246094
+    train     = 0.099575263346553
+    val       = 0.006788685917854309
+
+>>> AVERAGES for CONFIG 13 over 2 runs:
+    config_label = july_august_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 28.54
+    avg_train    = 0.097590
+    avg_val      = 0.006165
+
+==================================================
+CONFIG 14: july_august_seq9_future3_ram128M_full
+  range_tag   = july_august
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 14] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-08-01 00:00:00 (745 hours).
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_ram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.097036  val=0.009772
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 80.74 seconds
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 80.73633456230164
+    train     = 0.09703633207345651
+    val       = 0.009772302582859993
+
+[CONFIG 14] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-08-01 00:00:00 (745 hours).
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_ram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.098067  val=0.002949
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 75.46 seconds
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 75.45685195922852
+    train     = 0.09806743285641562
+    val       = 0.0029494971968233585
+
+>>> AVERAGES for CONFIG 14 over 2 runs:
+    config_label = july_august_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 78.10
+    avg_train    = 0.097552
+    avg_val      = 0.006361
+
+==================================================
+CONFIG 15: july_september_seq9_future3_ram128M_parsed
+  range_tag   = july_september
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_september.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 15] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.42 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 720
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_ram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.119743  val=0.013906
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 23.64 seconds
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 23.636594772338867
+    train     = 0.11974258377244341
+    val       = 0.013905626721680164
+
+[CONFIG 15] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.42 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 720
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_ram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.125256  val=0.010510
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 24.18 seconds
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 24.17571187019348
+    train     = 0.12525577950902148
+    val       = 0.010510149411857128
+
+>>> AVERAGES for CONFIG 15 over 2 runs:
+    config_label = july_september_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 23.91
+    avg_train    = 0.122499
+    avg_val      = 0.012208
+
+==================================================
+CONFIG 16: july_september_seq9_future3_ram128M_full
+  range_tag   = july_september
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 16] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-09-01 00:00:00 (1489 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1489
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_ram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.074301  val=0.002226
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 165.88 seconds
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 165.87842178344727
+    train     = 0.07430140526822852
+    val       = 0.002226112876087427
+
+[CONFIG 16] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-09-01 00:00:00 (1489 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1489
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_ram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.071995  val=0.005332
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 165.76 seconds
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 165.7553973197937
+    train     = 0.07199532809306229
+    val       = 0.005332205444574356
+
+>>> AVERAGES for CONFIG 16 over 2 runs:
+    config_label = july_september_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 165.82
+    avg_train    = 0.073148
+    avg_val      = 0.003779
+
+==================================================
+CONFIG 17: feb_march_seq9_future3_vram128M_parsed
+  range_tag   = feb_march
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_march.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 17] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_vram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.118314  val=0.001856
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 22.86 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 22.860379219055176
+    train     = 0.11831351427725209
+    val       = 0.0018562998156994581
+
+[CONFIG 17] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_vram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.115200  val=0.001821
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 23.61 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 23.60622549057007
+    train     = 0.11520043521055154
+    val       = 0.0018210517009720206
+
+>>> AVERAGES for CONFIG 17 over 2 runs:
+    config_label = feb_march_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 23.23
+    avg_train    = 0.116757
+    avg_val      = 0.001839
+
+==================================================
+CONFIG 18: feb_march_seq9_future3_vram128M_full
+  range_tag   = feb_march
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 18] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-03-01 00:00:00 (697 hours).
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_vram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.115344  val=0.001806
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 81.26 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 81.26060938835144
+    train     = 0.1153444401382227
+    val       = 0.0018057659035548568
+
+[CONFIG 18] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-03-01 00:00:00 (697 hours).
+[MEM] Effective dense hourly timesteps (after filter): 697
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_march_seq9_future3_vram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.115478  val=0.001887
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 75.75 seconds
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 75.75289225578308
+    train     = 0.11547818854071047
+    val       = 0.0018866928294301033
+
+>>> AVERAGES for CONFIG 18 over 2 runs:
+    config_label = feb_march_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 78.51
+    avg_train    = 0.115411
+    avg_val      = 0.001846
+
+==================================================
+CONFIG 19: feb_april_seq9_future3_vram128M_parsed
+  range_tag   = feb_april
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_april.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 19] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_vram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.101150  val=0.009881
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 47.76 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 47.76061272621155
+    train     = 0.101149543956365
+    val       = 0.009881338104605675
+
+[CONFIG 19] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.70 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_vram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.100484  val=0.010215
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 48.80 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 48.80451774597168
+    train     = 0.10048440540391769
+    val       = 0.01021471619606018
+
+>>> AVERAGES for CONFIG 19 over 2 runs:
+    config_label = feb_april_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 48.28
+    avg_train    = 0.100817
+    avg_val      = 0.010048
+
+==================================================
+CONFIG 20: feb_april_seq9_future3_vram128M_full
+  range_tag   = feb_april
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 20] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-04-01 00:00:00 (1441 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_vram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.101783  val=0.011503
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 116.74 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 116.73674297332764
+    train     = 0.10178288984131979
+    val       = 0.011503218673169613
+
+[CONFIG 20] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-02-01 00:00:00 .. 2024-04-01 00:00:00 (1441 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1441
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/feb_april_seq9_future3_vram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.101380  val=0.011138
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 118.30 seconds
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 118.299569606781
+    train     = 0.10138010574126993
+    val       = 0.011137518100440502
+
+>>> AVERAGES for CONFIG 20 over 2 runs:
+    config_label = feb_april_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 117.52
+    avg_train    = 0.101581
+    avg_val      = 0.011320
+
+==================================================
+CONFIG 21: july_august_seq9_future3_vram128M_parsed
+  range_tag   = july_august
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_august.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 21] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.28 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_vram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.104525  val=0.010641
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 25.28 seconds
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 25.279024362564087
+    train     = 0.10452473621399266
+    val       = 0.010641392320394516
+
+[CONFIG 21] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.28 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_vram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.099890  val=0.008099
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 25.33 seconds
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 25.330214023590088
+    train     = 0.0998896067753962
+    val       = 0.008098844438791275
+
+>>> AVERAGES for CONFIG 21 over 2 runs:
+    config_label = july_august_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 25.30
+    avg_train    = 0.102207
+    avg_val      = 0.009370
+
+==================================================
+CONFIG 22: july_august_seq9_future3_vram128M_full
+  range_tag   = july_august
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 22] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-08-01 00:00:00 (745 hours).
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_vram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.105163  val=0.005261
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 76.10 seconds
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 76.0985586643219
+    train     = 0.10516304182705827
+    val       = 0.005260905716568232
+
+[CONFIG 22] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-08-01 00:00:00 (745 hours).
+[MEM] Effective dense hourly timesteps (after filter): 745
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_august_seq9_future3_vram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.093816  val=0.005805
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 77.45 seconds
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 77.45266842842102
+    train     = 0.09381576408492528
+    val       = 0.005805046763271093
+
+>>> AVERAGES for CONFIG 22 over 2 runs:
+    config_label = july_august_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 76.78
+    avg_train    = 0.099489
+    avg_val      = 0.005533
+
+==================================================
+CONFIG 23: july_september_seq9_future3_vram128M_parsed
+  range_tag   = july_september
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_september.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 23] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.42 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 720
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_vram128M_parsed_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.113097  val=0.039675
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 24.01 seconds
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_parsed_run1_json.json
+  Run 1 metrics:
+    runtime_s = 24.01140284538269
+    train     = 0.11309728692108384
+    val       = 0.03967493399977684
+
+[CONFIG 23] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=70.42 bytes, min=52 bytes, max=113 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[MEM] Effective dense hourly timesteps (after filter): 720
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_vram128M_parsed_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.118133  val=0.010015
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 24.08 seconds
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_parsed_run2_json.json
+  Run 2 metrics:
+    runtime_s = 24.07729196548462
+    train     = 0.11813286378223066
+    val       = 0.010014721192419529
+
+>>> AVERAGES for CONFIG 23 over 2 runs:
+    config_label = july_september_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 24.04
+    avg_train    = 0.115615
+    avg_val      = 0.024845
+
+==================================================
+CONFIG 24: july_september_seq9_future3_vram128M_full
+  range_tag   = july_september
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 24] Run 1...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-09-01 00:00:00 (1489 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1489
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_vram128M_full_run1_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.070573  val=0.001679
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 119.30 seconds
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_full_run1_json.json
+  Run 1 metrics:
+    runtime_s = 119.29807615280151
+    train     = 0.07057298222211403
+    val       = 0.00167850183788687
+
+[CONFIG 24] Run 2...
+[MEM] Row size stats over 1000 sampled rows (excluding header): avg=69.53 bytes, min=52 bytes, max=112 bytes
+[MEM] Scanning CSV for global structure with chunksize=100000 rows...
+[FILTER] Restricting training to datetimes 2024-07-01 00:00:00 .. 2024-09-01 00:00:00 (1489 hours).
+[MEM] Effective dense hourly timesteps (after filter): 1489
+[MEM] Approx dense bytes per timestep: 260176.00
+[LOG] Saving computations to results/july_september_seq9_future3_vram128M_full_run2_json_COMP_DUMP.json
+[EPOCH 1/1] train=0.072834  val=0.002534
+Model saved at: checkpoints/checkpoint.pth
+Total runtime: 113.70 seconds
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_full_run2_json.json
+  Run 2 metrics:
+    runtime_s = 113.69819903373718
+    train     = 0.07283389154400711
+    val       = 0.0025341359432786703
+
+>>> AVERAGES for CONFIG 24 over 2 runs:
+    config_label = july_september_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 116.50
+    avg_train    = 0.071703
+    avg_val      = 0.002106
+

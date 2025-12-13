@@ -1,0 +1,11 @@
+{
+    "train_csv": "data/training_data_parsed_feb_march.csv",
+    "epochs": 1,
+    "runtime_seconds": 20.720674753189087,
+    "train_loss": 0.11488715359675032,
+    "val_loss": 0.002403387101367116,
+    "max_ram_bytes": null,
+    "max_vram_bytes": null,
+    "time_start": null,
+    "time_end": null
+}

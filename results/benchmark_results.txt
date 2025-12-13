@@ -1,0 +1,1271 @@
+==================================================
+CONFIG 1: feb_march_seq9_future3_parsed
+  range_tag   = feb_march
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_march.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 1] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1259 | Val: 0.0020
+Done. Runtime: 20.64s
+Experiment metrics saved to results/feb_march_seq9_future3_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 20.644118785858154
+    train     = 0.12587925326350652
+    val       = 0.0020245087798684835
+
+[CONFIG 1] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1157 | Val: 0.0013
+Done. Runtime: 20.67s
+Experiment metrics saved to results/feb_march_seq9_future3_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 20.672553777694702
+    train     = 0.11572023904434359
+    val       = 0.0013252522330731153
+
+[CONFIG 1] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1269 | Val: 0.0020
+Done. Runtime: 20.57s
+Experiment metrics saved to results/feb_march_seq9_future3_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 20.573435306549072
+    train     = 0.12691335510951263
+    val       = 0.001977955223992467
+
+>>> AVERAGES for CONFIG 1 over 3 runs:
+    config_label = feb_march_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 20.63
+    avg_train    = 0.122838
+    avg_val      = 0.001776
+
+==================================================
+CONFIG 2: feb_march_seq9_future3_full
+  range_tag   = feb_march
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 2] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1138 | Val: 0.0019
+Done. Runtime: 55.54s
+Experiment metrics saved to results/feb_march_seq9_future3_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 55.543760538101196
+    train     = 0.11376179483211422
+    val       = 0.0018637115135788918
+
+[CONFIG 2] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1141 | Val: 0.0017
+Done. Runtime: 57.12s
+Experiment metrics saved to results/feb_march_seq9_future3_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 57.118574142456055
+    train     = 0.11410111227716284
+    val       = 0.0017106293234974146
+
+[CONFIG 2] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1155 | Val: 0.0012
+Done. Runtime: 60.16s
+Experiment metrics saved to results/feb_march_seq9_future3_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 60.159382343292236
+    train     = 0.11550859400714712
+    val       = 0.001187852118164301
+
+>>> AVERAGES for CONFIG 2 over 3 runs:
+    config_label = feb_march_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 57.61
+    avg_train    = 0.114457
+    avg_val      = 0.001587
+
+==================================================
+CONFIG 3: feb_april_seq9_future3_parsed
+  range_tag   = feb_april
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_april.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 3] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1011 | Val: 0.0100
+Done. Runtime: 40.33s
+Experiment metrics saved to results/feb_april_seq9_future3_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 40.32744002342224
+    train     = 0.10105977067528488
+    val       = 0.009954128414392471
+
+[CONFIG 3] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1002 | Val: 0.0098
+Done. Runtime: 39.71s
+Experiment metrics saved to results/feb_april_seq9_future3_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 39.709744691848755
+    train     = 0.1002204613473553
+    val       = 0.009796343743801117
+
+[CONFIG 3] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1016 | Val: 0.0104
+Done. Runtime: 39.44s
+Experiment metrics saved to results/feb_april_seq9_future3_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 39.441452980041504
+    train     = 0.10157654195164259
+    val       = 0.010356945917010307
+
+>>> AVERAGES for CONFIG 3 over 3 runs:
+    config_label = feb_april_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 39.83
+    avg_train    = 0.100952
+    avg_val      = 0.010036
+
+==================================================
+CONFIG 4: feb_april_seq9_future3_full
+  range_tag   = feb_april
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 4] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1035 | Val: 0.0106
+Done. Runtime: 72.44s
+Experiment metrics saved to results/feb_april_seq9_future3_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 72.4424147605896
+    train     = 0.10348155569102797
+    val       = 0.010618822649121284
+
+[CONFIG 4] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1014 | Val: 0.0096
+Done. Runtime: 70.43s
+Experiment metrics saved to results/feb_april_seq9_future3_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 70.42617797851562
+    train     = 0.10138939746779266
+    val       = 0.00964916031807661
+
+[CONFIG 4] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0998 | Val: 0.0099
+Done. Runtime: 73.43s
+Experiment metrics saved to results/feb_april_seq9_future3_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 73.42839550971985
+    train     = 0.09984796317685005
+    val       = 0.00985555537045002
+
+>>> AVERAGES for CONFIG 4 over 3 runs:
+    config_label = feb_april_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 72.10
+    avg_train    = 0.101573
+    avg_val      = 0.010041
+
+==================================================
+CONFIG 5: july_august_seq9_future3_parsed
+  range_tag   = july_august
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_august.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 5] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0996 | Val: 0.0054
+Done. Runtime: 21.99s
+Experiment metrics saved to results/july_august_seq9_future3_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 21.986740112304688
+    train     = 0.09963742500597393
+    val       = 0.005405140109360218
+
+[CONFIG 5] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0988 | Val: 0.0054
+Done. Runtime: 22.20s
+Experiment metrics saved to results/july_august_seq9_future3_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 22.202314615249634
+    train     = 0.09884012833983721
+    val       = 0.005421672016382217
+
+[CONFIG 5] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0945 | Val: 0.0046
+Done. Runtime: 21.64s
+Experiment metrics saved to results/july_august_seq9_future3_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 21.636495113372803
+    train     = 0.09453681147370578
+    val       = 0.004646949470043182
+
+>>> AVERAGES for CONFIG 5 over 3 runs:
+    config_label = july_august_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 21.94
+    avg_train    = 0.097671
+    avg_val      = 0.005158
+
+==================================================
+CONFIG 6: july_august_seq9_future3_full
+  range_tag   = july_august
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 6] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0948 | Val: 0.0246
+Done. Runtime: 54.62s
+Experiment metrics saved to results/july_august_seq9_future3_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 54.62274503707886
+    train     = 0.09481327823294727
+    val       = 0.024578474462032318
+
+[CONFIG 6] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0973 | Val: 0.0063
+Done. Runtime: 60.53s
+Experiment metrics saved to results/july_august_seq9_future3_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 60.53226590156555
+    train     = 0.09731028586301232
+    val       = 0.0062944297678768635
+
+[CONFIG 6] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0939 | Val: 0.0056
+Done. Runtime: 57.36s
+Experiment metrics saved to results/july_august_seq9_future3_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 57.35830616950989
+    train     = 0.09389656218154513
+    val       = 0.005578773096203804
+
+>>> AVERAGES for CONFIG 6 over 3 runs:
+    config_label = july_august_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 57.50
+    avg_train    = 0.095340
+    avg_val      = 0.012151
+
+==================================================
+CONFIG 7: july_september_seq9_future3_parsed
+  range_tag   = july_september
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_september.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 7] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1150 | Val: 0.0097
+Done. Runtime: 21.60s
+Experiment metrics saved to results/july_september_seq9_future3_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 21.59651803970337
+    train     = 0.11496623391640202
+    val       = 0.009744130074977875
+
+[CONFIG 7] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1138 | Val: 0.0325
+Done. Runtime: 21.52s
+Experiment metrics saved to results/july_september_seq9_future3_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 21.516897678375244
+    train     = 0.11379371600800912
+    val       = 0.03254961222410202
+
+[CONFIG 7] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1149 | Val: 0.0251
+Done. Runtime: 21.47s
+Experiment metrics saved to results/july_september_seq9_future3_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 21.47199583053589
+    train     = 0.11485506176990581
+    val       = 0.02509411983191967
+
+>>> AVERAGES for CONFIG 7 over 3 runs:
+    config_label = july_september_seq9_future3_parsed
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 21.53
+    avg_train    = 0.114538
+    avg_val      = 0.022463
+
+==================================================
+CONFIG 8: july_september_seq9_future3_full
+  range_tag   = july_september
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 8] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0737 | Val: 0.0023
+Done. Runtime: 75.98s
+Experiment metrics saved to results/july_september_seq9_future3_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 75.98094129562378
+    train     = 0.07370402349845326
+    val       = 0.002273756777867675
+
+[CONFIG 8] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0709 | Val: 0.0040
+Done. Runtime: 75.93s
+Experiment metrics saved to results/july_september_seq9_future3_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 75.93075108528137
+    train     = 0.07094917580370662
+    val       = 0.0040443590842187405
+
+[CONFIG 8] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0712 | Val: 0.0023
+Done. Runtime: 76.16s
+Experiment metrics saved to results/july_september_seq9_future3_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 76.1639952659607
+    train     = 0.07119624616457867
+    val       = 0.00227348948828876
+
+>>> AVERAGES for CONFIG 8 over 3 runs:
+    config_label = july_september_seq9_future3_full
+    base_args    = --seq-len-in 9 --future-steps 3
+    avg_time_s   = 76.03
+    avg_train    = 0.071950
+    avg_val      = 0.002864
+
+==================================================
+CONFIG 9: feb_march_seq9_future3_ram128M_parsed
+  range_tag   = feb_march
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_march.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 9] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1149 | Val: 0.0016
+Done. Runtime: 32.42s
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 32.42321276664734
+    train     = 0.1149087543748645
+    val       = 0.0016185455024242401
+
+[CONFIG 9] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1209 | Val: 0.0020
+Done. Runtime: 33.18s
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 33.17810273170471
+    train     = 0.12091746708818063
+    val       = 0.002015971578657627
+
+[CONFIG 9] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1141 | Val: 0.0018
+Done. Runtime: 33.26s
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 33.262526512145996
+    train     = 0.11414091202156189
+    val       = 0.0017972799250856042
+
+>>> AVERAGES for CONFIG 9 over 3 runs:
+    config_label = feb_march_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 32.95
+    avg_train    = 0.116656
+    avg_val      = 0.001811
+
+==================================================
+CONFIG 10: feb_march_seq9_future3_ram128M_full
+  range_tag   = feb_march
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 10] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1199 | Val: 0.0020
+Done. Runtime: 713.74s
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 713.7356305122375
+    train     = 0.11990492959281446
+    val       = 0.0019651083275675774
+
+[CONFIG 10] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1175 | Val: 0.0019
+Done. Runtime: 796.19s
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 796.1874055862427
+    train     = 0.11745965037136488
+    val       = 0.001892036059871316
+
+[CONFIG 10] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1176 | Val: 0.0017
+Done. Runtime: 859.30s
+Experiment metrics saved to results/feb_march_seq9_future3_ram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 859.300986289978
+    train     = 0.11763067968167995
+    val       = 0.001693365746177733
+
+>>> AVERAGES for CONFIG 10 over 3 runs:
+    config_label = feb_march_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 789.74
+    avg_train    = 0.118332
+    avg_val      = 0.001850
+
+==================================================
+CONFIG 11: feb_april_seq9_future3_ram128M_parsed
+  range_tag   = feb_april
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_april.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 11] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0993 | Val: 0.0089
+Done. Runtime: 74.41s
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 74.40895342826843
+    train     = 0.09932905259978521
+    val       = 0.00890841893851757
+
+[CONFIG 11] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1016 | Val: 0.0101
+Done. Runtime: 77.29s
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 77.29212594032288
+    train     = 0.10164543716171821
+    val       = 0.01008217129856348
+
+[CONFIG 11] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1018 | Val: 0.0106
+Done. Runtime: 78.24s
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 78.24364566802979
+    train     = 0.10182612393429125
+    val       = 0.010640359483659267
+
+>>> AVERAGES for CONFIG 11 over 3 runs:
+    config_label = feb_april_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 76.65
+    avg_train    = 0.100934
+    avg_val      = 0.009877
+
+==================================================
+CONFIG 12: feb_april_seq9_future3_ram128M_full
+  range_tag   = feb_april
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 12] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1018 | Val: 0.0101
+Done. Runtime: 674.59s
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 674.5928907394409
+    train     = 0.10180859715983896
+    val       = 0.010092937387526035
+
+[CONFIG 12] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1015 | Val: 0.0111
+Done. Runtime: 693.06s
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 693.0637373924255
+    train     = 0.10151858729199617
+    val       = 0.011145474389195442
+
+[CONFIG 12] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1002 | Val: 0.0100
+Done. Runtime: 681.08s
+Experiment metrics saved to results/feb_april_seq9_future3_ram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 681.0823578834534
+    train     = 0.10019554662993634
+    val       = 0.01002733688801527
+
+>>> AVERAGES for CONFIG 12 over 3 runs:
+    config_label = feb_april_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 682.91
+    avg_train    = 0.101174
+    avg_val      = 0.010422
+
+==================================================
+CONFIG 13: july_august_seq9_future3_ram128M_parsed
+  range_tag   = july_august
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_august.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 13] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0966 | Val: 0.0029
+Done. Runtime: 35.21s
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 35.20565223693848
+    train     = 0.09664509047015649
+    val       = 0.0028682658448815346
+
+[CONFIG 13] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1021 | Val: 0.0118
+Done. Runtime: 34.95s
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 34.951345682144165
+    train     = 0.10209053349922277
+    val       = 0.01184005942195654
+
+[CONFIG 13] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0964 | Val: 0.0061
+Done. Runtime: 33.44s
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 33.439152002334595
+    train     = 0.09639325005710328
+    val       = 0.006131740752607584
+
+>>> AVERAGES for CONFIG 13 over 3 runs:
+    config_label = july_august_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 34.53
+    avg_train    = 0.098376
+    avg_val      = 0.006947
+
+==================================================
+CONFIG 14: july_august_seq9_future3_ram128M_full
+  range_tag   = july_august
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 14] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0987 | Val: 0.0053
+Done. Runtime: 726.55s
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 726.5480835437775
+    train     = 0.09874494170912158
+    val       = 0.005303092300891876
+
+[CONFIG 14] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0964 | Val: 0.0080
+Done. Runtime: 761.36s
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 761.363410949707
+    train     = 0.09640844061853979
+    val       = 0.008044881746172905
+
+[CONFIG 14] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0935 | Val: 0.0049
+Done. Runtime: 736.48s
+Experiment metrics saved to results/july_august_seq9_future3_ram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 736.4791550636292
+    train     = 0.09347799035393169
+    val       = 0.004909480456262827
+
+>>> AVERAGES for CONFIG 14 over 3 runs:
+    config_label = july_august_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 741.46
+    avg_train    = 0.096210
+    avg_val      = 0.006086
+
+==================================================
+CONFIG 15: july_september_seq9_future3_ram128M_parsed
+  range_tag   = july_september
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_september.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 15] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1165 | Val: 0.0107
+Done. Runtime: 32.74s
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 32.74189758300781
+    train     = 0.11649902901587264
+    val       = 0.01066928543150425
+
+[CONFIG 15] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1232 | Val: 0.0057
+Done. Runtime: 33.31s
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 33.30844330787659
+    train     = 0.12321079934832913
+    val       = 0.005698367487639189
+
+[CONFIG 15] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1106 | Val: 0.0117
+Done. Runtime: 34.42s
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 34.4201545715332
+    train     = 0.11058020156155353
+    val       = 0.011704905889928341
+
+>>> AVERAGES for CONFIG 15 over 3 runs:
+    config_label = july_september_seq9_future3_ram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 33.49
+    avg_train    = 0.116763
+    avg_val      = 0.009358
+
+==================================================
+CONFIG 16: july_september_seq9_future3_ram128M_full
+  range_tag   = july_september
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 16] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0707 | Val: 0.0026
+Done. Runtime: 665.81s
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 665.8149285316467
+    train     = 0.07068701919640197
+    val       = 0.0025852567050606012
+
+[CONFIG 16] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0702 | Val: 0.0062
+Done. Runtime: 653.40s
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 653.3994033336639
+    train     = 0.07017978538172408
+    val       = 0.006232799030840397
+
+[CONFIG 16] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0725 | Val: 0.0017
+Done. Runtime: 621.65s
+Experiment metrics saved to results/july_september_seq9_future3_ram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 621.6513524055481
+    train     = 0.07245633101071255
+    val       = 0.0016552475281059742
+
+>>> AVERAGES for CONFIG 16 over 3 runs:
+    config_label = july_september_seq9_future3_ram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 134217728
+    avg_time_s   = 646.96
+    avg_train    = 0.071108
+    avg_val      = 0.003491
+
+==================================================
+CONFIG 17: feb_march_seq9_future3_vram128M_parsed
+  range_tag   = feb_march
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_march.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 17] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1149 | Val: 0.0011
+Done. Runtime: 23.83s
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 23.833466291427612
+    train     = 0.1149122027093789
+    val       = 0.0010952032171189785
+
+[CONFIG 17] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1131 | Val: 0.0007
+Done. Runtime: 24.94s
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 24.93502163887024
+    train     = 0.11308890409392927
+    val       = 0.000719836971256882
+
+[CONFIG 17] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1157 | Val: 0.0015
+Done. Runtime: 23.91s
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 23.90937113761902
+    train     = 0.11568757374132861
+    val       = 0.0015140720643103123
+
+>>> AVERAGES for CONFIG 17 over 3 runs:
+    config_label = feb_march_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 24.23
+    avg_train    = 0.114563
+    avg_val      = 0.001110
+
+==================================================
+CONFIG 18: feb_march_seq9_future3_vram128M_full
+  range_tag   = feb_march
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 18] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1212 | Val: 0.0019
+Done. Runtime: 79.32s
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 79.31719756126404
+    train     = 0.12122726235430112
+    val       = 0.001931008300743997
+
+[CONFIG 18] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1146 | Val: 0.0022
+Done. Runtime: 80.04s
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 80.04494714736938
+    train     = 0.11459786045492651
+    val       = 0.0021882259752601385
+
+[CONFIG 18] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-03-01 00:00:00 (697 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1155 | Val: 0.0018
+Done. Runtime: 79.17s
+Experiment metrics saved to results/feb_march_seq9_future3_vram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 79.17467331886292
+    train     = 0.11552103447290707
+    val       = 0.0018470953218638897
+
+>>> AVERAGES for CONFIG 18 over 3 runs:
+    config_label = feb_march_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 79.51
+    avg_train    = 0.117115
+    avg_val      = 0.001989
+
+==================================================
+CONFIG 19: feb_april_seq9_future3_vram128M_parsed
+  range_tag   = feb_april
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_april.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 19] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1013 | Val: 0.0111
+Done. Runtime: 52.40s
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 52.39691090583801
+    train     = 0.10128781427661855
+    val       = 0.011083903722465038
+
+[CONFIG 19] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1015 | Val: 0.0109
+Done. Runtime: 49.96s
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 49.96210265159607
+    train     = 0.10146951313957676
+    val       = 0.010865462012588978
+
+[CONFIG 19] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1015 | Val: 0.0108
+Done. Runtime: 52.44s
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 52.43838024139404
+    train     = 0.10152061001456283
+    val       = 0.010818194597959518
+
+>>> AVERAGES for CONFIG 19 over 3 runs:
+    config_label = feb_april_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 51.60
+    avg_train    = 0.101426
+    avg_val      = 0.010923
+
+==================================================
+CONFIG 20: feb_april_seq9_future3_vram128M_full
+  range_tag   = feb_april
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-04-01 00:00:00
+--------------------------------------------------
+[CONFIG 20] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1044 | Val: 0.0106
+Done. Runtime: 121.49s
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 121.49082398414612
+    train     = 0.10441761969660338
+    val       = 0.010555201210081577
+
+[CONFIG 20] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1039 | Val: 0.0107
+Done. Runtime: 121.80s
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 121.79964399337769
+    train     = 0.10387565199923994
+    val       = 0.010704574175179005
+
+[CONFIG 20] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-02-01 00:00:00 to 2024-04-01 00:00:00 (1441 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1019 | Val: 0.0104
+Done. Runtime: 120.66s
+Experiment metrics saved to results/feb_april_seq9_future3_vram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 120.6608202457428
+    train     = 0.1019322436361515
+    val       = 0.010419340804219246
+
+>>> AVERAGES for CONFIG 20 over 3 runs:
+    config_label = feb_april_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 121.32
+    avg_train    = 0.103409
+    avg_val      = 0.010560
+
+==================================================
+CONFIG 21: july_august_seq9_future3_vram128M_parsed
+  range_tag   = july_august
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_august.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 21] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0968 | Val: 0.0052
+Done. Runtime: 26.54s
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 26.539117574691772
+    train     = 0.096811575623488
+    val       = 0.005170001648366451
+
+[CONFIG 21] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0970 | Val: 0.0069
+Done. Runtime: 26.71s
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 26.714144468307495
+    train     = 0.09696553366852553
+    val       = 0.00692726718261838
+
+[CONFIG 21] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1026 | Val: 0.0045
+Done. Runtime: 25.68s
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 25.680946350097656
+    train     = 0.10263052336079873
+    val       = 0.004526079632341862
+
+>>> AVERAGES for CONFIG 21 over 3 runs:
+    config_label = july_august_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 26.31
+    avg_train    = 0.098803
+    avg_val      = 0.005541
+
+==================================================
+CONFIG 22: july_august_seq9_future3_vram128M_full
+  range_tag   = july_august
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-08-01 00:00:00
+--------------------------------------------------
+[CONFIG 22] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0980 | Val: 0.0115
+Done. Runtime: 81.98s
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 81.98109412193298
+    train     = 0.09795687322908307
+    val       = 0.011520279571413994
+
+[CONFIG 22] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0987 | Val: 0.0075
+Done. Runtime: 76.15s
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 76.15177774429321
+    train     = 0.0986879815141942
+    val       = 0.00749528082087636
+
+[CONFIG 22] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-08-01 00:00:00 (745 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0995 | Val: 0.0039
+Done. Runtime: 79.28s
+Experiment metrics saved to results/july_august_seq9_future3_vram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 79.28035688400269
+    train     = 0.09954915462538844
+    val       = 0.0038609637413173914
+
+>>> AVERAGES for CONFIG 22 over 3 runs:
+    config_label = july_august_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 79.14
+    avg_train    = 0.098731
+    avg_val      = 0.007626
+
+==================================================
+CONFIG 23: july_september_seq9_future3_vram128M_parsed
+  range_tag   = july_september
+  mode        = parsed
+  train_csv   = data/training_data_parsed_july_september.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 23] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1131 | Val: 0.0150
+Done. Runtime: 25.77s
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 25.765843391418457
+    train     = 0.11312677219447027
+    val       = 0.015012331306934357
+
+[CONFIG 23] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1125 | Val: 0.0201
+Done. Runtime: 25.42s
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 25.419119119644165
+    train     = 0.11247509444718301
+    val       = 0.020116886124014854
+
+[CONFIG 23] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1158 | Val: 0.0138
+Done. Runtime: 25.82s
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 25.81894087791443
+    train     = 0.11579499768332298
+    val       = 0.013761715963482857
+
+>>> AVERAGES for CONFIG 23 over 3 runs:
+    config_label = july_september_seq9_future3_vram128M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 25.67
+    avg_train    = 0.113799
+    avg_val      = 0.016297
+
+==================================================
+CONFIG 24: july_september_seq9_future3_vram128M_full
+  range_tag   = july_september
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+  time_start  = 2024-07-01 00:00:00
+  time_end    = 2024-09-01 00:00:00
+--------------------------------------------------
+[CONFIG 24] Run 1...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0704 | Val: 0.0026
+Done. Runtime: 121.27s
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_full_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 121.27214169502258
+    train     = 0.07041580657977535
+    val       = 0.0025868716184049845
+
+[CONFIG 24] Run 2...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0694 | Val: 0.0023
+Done. Runtime: 121.74s
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_full_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 121.74443936347961
+    train     = 0.06939629335284071
+    val       = 0.002342209219932556
+
+[CONFIG 24] Run 3...
+[MEM] Scanning CSV for global structure...
+[FILTER] Restricting to timestamps from 2024-07-01 00:00:00 to 2024-09-01 00:00:00 (1489 hours).
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.0780 | Val: 0.0021
+Done. Runtime: 122.52s
+Experiment metrics saved to results/july_september_seq9_future3_vram128M_full_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 122.5164806842804
+    train     = 0.07799592087075558
+    val       = 0.0020660278387367725
+
+>>> AVERAGES for CONFIG 24 over 3 runs:
+    config_label = july_september_seq9_future3_vram128M_full
+    base_args    = --seq-len-in 9 --future-steps 3 --max-vram-bytes 134217728
+    avg_time_s   = 121.84
+    avg_train    = 0.072603
+    avg_val      = 0.002332
+
+==================================================
+CONFIG 25: feb_march_seq9_future3_vram32M_parsed
+  range_tag   = feb_march
+  mode        = parsed
+  train_csv   = data/training_data_parsed_feb_march.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 33554432
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 25] Run 1...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1139 | Val: 0.0009
+Done. Runtime: 84.68s
+Experiment metrics saved to results/feb_march_seq9_future3_vram32M_parsed_run1_DB_COMP_DUMP.json
+  Run 1 metrics:
+    runtime_s = 84.67831826210022
+    train     = 0.11390337638513513
+    val       = 0.0008616712875664234
+
+[CONFIG 25] Run 2...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1211 | Val: 0.0021
+Done. Runtime: 84.97s
+Experiment metrics saved to results/feb_march_seq9_future3_vram32M_parsed_run2_DB_COMP_DUMP.json
+  Run 2 metrics:
+    runtime_s = 84.97388696670532
+    train     = 0.12112893936096666
+    val       = 0.0021045999601483345
+
+[CONFIG 25] Run 3...
+[MEM] Scanning CSV for global structure...
+[DB] Ready. Partitions created for seq_len=9.
+[Epoch 1] Train: 0.1183 | Val: 0.0019
+Done. Runtime: 79.64s
+Experiment metrics saved to results/feb_march_seq9_future3_vram32M_parsed_run3_DB_COMP_DUMP.json
+  Run 3 metrics:
+    runtime_s = 79.64305305480957
+    train     = 0.11830002883498071
+    val       = 0.001900724833831191
+
+>>> AVERAGES for CONFIG 25 over 3 runs:
+    config_label = feb_march_seq9_future3_vram32M_parsed
+    base_args    = --seq-len-in 9 --future-steps 3 --max-ram-bytes 33554432
+    avg_time_s   = 83.10
+    avg_train    = 0.117777
+    avg_val      = 0.001622
+
+==================================================
+CONFIG 26: feb_march_seq9_future3_vram32M_full
+  range_tag   = feb_march
+  mode        = full
+  train_csv   = data/training_data.csv
+  base_args   = --seq-len-in 9 --future-steps 3 --max-ram-bytes 33554432
+  time_start  = 2024-02-01 00:00:00
+  time_end    = 2024-03-01 00:00:00
+--------------------------------------------------
+[CONFIG 26] Run 1...
