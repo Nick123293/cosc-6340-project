@@ -21,11 +21,18 @@ The main scripts in our code are as follows
 `--train-csv` is a path, is required, and takes the path to the training csv you wish to use for training.  
 `--val-csl` is a path, it is also requied, and takes the path to the validation csv.  
 `--epochs` is an INT, it is not required, tunes the number of epochs you with to run the training for.  
-  Default value is 2  
-`--future-steps` is an INT, is not required, it sets the number of future steps you wish to train the neural network to predict  
-  Default value is 3  
-`--seq-len-in` is an INT, is not required, it sets the number of timesteps which are inputted into the neural network to use for predicting the furture steps  
-	Default value is 9  
-`--checkpoint` takes in a path, this is the path where your model will be saved after training  
- 	Default value is 
-  
+- Default value is 2  
+`--future-steps` is an INT, it is not required, it sets the number of future steps you wish to train the neural network to predict  
+- Default value is 3  
+`--seq-len-in` is an INT, it is not required, it sets the number of timesteps which are inputted into the neural network to use for predicting the furture steps  
+- Default value is 9  
+`--checkpoint` takes in a path. It is not required. This is the path where your model will be saved after training  
+- Default value is checkpoint.pth  
+`--load-checkpoint` also takes in a path. It is not required, if used it will load the model given in the value for this argument and use it for further training  
+`--reset-db` is an optional parameter that will drop all of the tables in the database  
+`--max-ram-bytes` is an INT. There is not default. If set it will limit the amount of memory you can read from the CSV at once (only one of these chunks can be held in main memory at a time) and also limit the size of the dense tensor that is created from this csv  
+`--max-vram-bytes` is an INT. There is not default. It limits the size of the dense tensor that you can pass into the GPU at once (only one chunk can be held in VRAM at a time).  
+`--time-start is a string. It is an optional parameter with no default that takes in a datetime string of the format "YYYY-MM-DD HH:MM:SS".  
+When used, this argument trains only on data with timesteps >= to the value given.  `--time-start` must be <= `time-end`
+`--time-end` is a string. It is an optional parameter with no default that works similarly to `--time-start`, except that it only trains on timesteps <= to the value given. `--time-end` must be >= `--time-start`  
+ 
