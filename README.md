@@ -32,7 +32,7 @@ The main scripts in our code are as follows
 When used, this argument trains only on data with timesteps >= to the value given. `--time-start` must be <= `time-end`  
 `--time-end` is a string. It is an optional parameter with no default that works similarly to `--time-start`, except that it only trains on timesteps <= to the value given. `--time-end` must be >= `--time-start`  
 A run of this script might look like:  
-`python3 train.py --train-csv data/training_data.csv --val-csv data/validation_data.csv --epochs 4 --max-ram-bytes 134217728 --time-start "2024-01-01 00:00:00" --time-end "2024-02-01 00:00:00"  
+`python3 train.py --train-csv data/training_data.csv --val-csv data/validation_data.csv --epochs 4 --max-ram-bytes 134217728 --time-start "2024-01-01 00:00:00" --time-end "2024-02-01 00:00:00"`  
 4: train\_no\_checkpoint\_no\_DBMS.py  
 This file takes in similar arguments to train.py, with the following changes. Everything not specified is exactly the same as described in the train.py section  
 `--reset-db` is not a command line argument in this script  
