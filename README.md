@@ -1,6 +1,12 @@
-Instructions to use our code:  
-1) To do training, use train.py, train_memory_aware.py, train_memory_aware_gpu.py, or train_memory_aware_one_window.py (warning train_memory_aware.py will take very long to run) the only required command line argument --data, which you point to the directory of file you would like to train on
-2) Optional arguments are --epochs (defaults to 5), --future-steps (how many future steps we want to predict (defaults to 3), --checkpoint (where the checkpoints on saved on disk, defaults to checkpoint.pth), and --load-checkpoint (which will load a checkpoint if you would like to continue training, put path to checkpoint.pth)
-3) Arguments are same for all training algorithms, for the memory aware models you can change the RAM limits at the top of each file. You can also change the number of input timesteps into the ConvLSTM using SEQ_LEN_IN at the top of each relevant file
-4) To test, use test.py with the following arguments: --data path to the data, --checkpoint the model you want to test, --future-steps (same as training, defaults to 3), --seq-len (same as SEQ_LEN_IN from training, defaults to 9)
-5) The data is located in ~/project/data one directory is for training and the other is for testing
+In this README file we discuss the uses of each python script, and how to run them yourself as well as the required libraries
+
+Required Libraries:
+- pytorch
+  - `pip install torch`
+- numpy
+  - `pip install numpy`
+- pandas
+  - `pip install pandas`
+- psycopg2
+  - `pip install psycopg2`
+
