@@ -2,8 +2,8 @@
 import pandas as pd
 import re
 
-INPUT_CSV  = "data/stripped_data.csv"
-OUTPUT_CSV = "data/dense_data.csv"
+INPUT_CSV  = "data/training_data_parsed_june_july.csv"
+OUTPUT_CSV = "data/training_data_parsed_june_july_new.csv"
 
 # Regex for strict date-only format: YYYY-MM-DD
 DATE_ONLY_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}$")

@@ -86,15 +86,13 @@ run_config() {
         echo "[CONFIG $config_id] Run $run..." | tee -a "$OUTFILE"
 
         # Per-run JSON log file
-        local log_file="${LOG_DIR}/${config_label}_run${run}_json.json"
-        local computation_dump="${LOG_DIR}/${config_label}_run${run}_json_COMP_DUMP.json"
+        local log_file="${LOG_DIR}/${config_label}_run${run}.json"
         PY_CMD=(
             python "$TRAIN_SCRIPT"
             --train-csv "$train_csv"
             --val-csv "$VAL_FILE"
             --epochs "$EPOCHS"
             --log-file "$log_file"
-            --save-computations "$computation_dump"
         )
 
         # Append base args (seq_len, future_steps, RAM/VRAM)

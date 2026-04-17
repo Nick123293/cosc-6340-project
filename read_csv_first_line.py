@@ -12,4 +12,4 @@ def read_and_print_line(filename, line_number):
 
         print(f"File has fewer than {line_number} lines.")
 
-read_and_print_line("data/testing_data.csv", 1000)
+read_and_print_line("data/training_data.csv", 38000000)

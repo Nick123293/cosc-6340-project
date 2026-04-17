@@ -66,14 +66,6 @@ def main():
         )
     )
     parser.add_argument("input_csv", help="Path to the input CSV file.")
-    parser.add_argument(
-        "--dt-format",
-        default=None,
-        help=(
-            "Optional explicit datetime format, e.g. '%Y-%m-%d %H-%M-%S'. "
-            "If omitted, pandas will infer the format."
-        ),
-    )
 
     args = parser.parse_args()
     split_csv_by_months(args.input_csv, args.dt_format)
